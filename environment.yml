@@ -1,0 +1,19 @@
+name: structured-products-pricer
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - numpy
+  - pandas
+  - scipy
+  - matplotlib
+  - plotly
+  - streamlit
+  - jupyterlab
+  - openpyxl
+  - pyarrow
+  - scikit-learn
+  - pytest
+  - black
+  - ruff
+  - pip
