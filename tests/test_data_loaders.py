@@ -5,6 +5,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+from src.config import ProjectConfig
 from src.market.loaders import load_option_quotes, load_rate_curves
 from src.portfolio.inventory_loader import load_inventory_workbook
 
@@ -99,3 +100,48 @@ def test_rate_curve_loader_reads_parquet(tmp_path: Path) -> None:
     ]
     assert frame.loc[0, "rate_decimal"] == pytest.approx(0.024)
     assert frame.loc[1, "curve_tenor_years"] == pytest.approx(1.0)
+
+
+def test_loaders_prefer_repository_raw_files(tmp_path: Path) -> None:
+    pytest.importorskip("pyarrow")
+
+    cfg = ProjectConfig.default(project_root=tmp_path)
+    cfg.ensure_directories()
+
+    pd.DataFrame(
+        {
+            "country": ["France", "France"],
+            "maturity": ["1M", "1Y"],
+            "date": ["2026-02-27", "2026-02-27"],
+            "rate": [2.4, 2.8],
+        }
+    ).to_parquet(cfg.raw_rate_curves_path, index=False)
+
+    cfg.raw_options_path.write_text(
+        "\n".join(
+            [
+                "optionSymbol;underlying;expiration;side;strike;dte;updated;bid;mid;ask;underlyingPrice;ticker;date",
+                "AAPL260630C00260000;AAPL;1782777600;call;260;30;1780100000;10.0;10.5;11.0;255.0;AAPL;2026-05-31",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    with pd.ExcelWriter(cfg.raw_inventory_path, engine="openpyxl") as writer:
+        pd.DataFrame(
+            {
+                "Date Valorisation": ["2026-02-27"],
+                "Produit": ["Call"],
+                "Quantite": [100_000],
+                "Sous jacent": ["AAPL"],
+                "Maturite": ["2026-06-30"],
+            }
+        ).to_excel(writer, sheet_name="Options", index=False)
+
+    rate_curves = load_rate_curves(config=cfg)
+    option_quotes = load_option_quotes(config=cfg)
+    inventory = load_inventory_workbook(config=cfg)
+
+    assert rate_curves.loc[0, "country"] == "France"
+    assert option_quotes.loc[0, "underlying"] == "AAPL"
+    assert set(inventory) == {"options"}

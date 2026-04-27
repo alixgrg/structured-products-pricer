@@ -10,6 +10,7 @@ from src.calibration.implied_vol import (
     clean_option_panel,
     implied_volatility_from_price,
 )
+from src.calibration.market_validation import MarketErrorThresholds, reprice_vanilla_market_quotes
 from src.models.black_scholes import black_scholes_price_and_greeks
 
 
@@ -160,3 +161,73 @@ def test_surface_interpolation_returns_finite_values() -> None:
 
     assert np.isfinite(value)
     assert 0.15 < value < 0.30
+
+
+def test_market_repricing_reports_explicit_thresholds() -> None:
+    class FlatVolSurface:
+        def __init__(self, volatility: float) -> None:
+            self.volatility_value = volatility
+
+        def volatility(self, maturity: float | np.ndarray, log_moneyness: float | np.ndarray) -> float | np.ndarray:
+            t_arr, k_arr = np.broadcast_arrays(np.asarray(maturity, dtype=float), np.asarray(log_moneyness, dtype=float))
+            values = np.full_like(t_arr, self.volatility_value, dtype=float)
+            if np.isscalar(maturity) and np.isscalar(log_moneyness):
+                return float(values)
+            return values
+
+    spot = 100.0
+    rate = 0.01
+    vol = 0.2
+
+    quotes = pd.DataFrame(
+        [
+            {
+                "option_type": "call",
+                "strike": 95.0,
+                "underlying_price": spot,
+                "time_to_maturity_years": 0.5,
+                "log_moneyness": float(np.log(95.0 / spot)),
+                "market_price": black_scholes_price_and_greeks(
+                    option_type="call",
+                    spot=spot,
+                    strike=95.0,
+                    maturity=0.5,
+                    rate=rate,
+                    volatility=vol,
+                ).price,
+                "implied_vol": vol,
+            },
+            {
+                "option_type": "put",
+                "strike": 105.0,
+                "underlying_price": spot,
+                "time_to_maturity_years": 1.0,
+                "log_moneyness": float(np.log(105.0 / spot)),
+                "market_price": black_scholes_price_and_greeks(
+                    option_type="put",
+                    spot=spot,
+                    strike=105.0,
+                    maturity=1.0,
+                    rate=rate,
+                    volatility=vol,
+                ).price,
+                "implied_vol": vol,
+            },
+        ]
+    )
+
+    result = reprice_vanilla_market_quotes(
+        quotes,
+        FlatVolSurface(vol),
+        rate=rate,
+        thresholds=MarketErrorThresholds(
+            abs_price_mae=1e-8,
+            abs_price_rmse=1e-8,
+            abs_price_max=1e-8,
+            abs_relative_price_mae=1e-8,
+            abs_vol_mae=1e-8,
+        ),
+    )
+
+    assert bool(result.summary.iloc[0]["within_thresholds"])
+    assert result.calibration_result.parameters["within_thresholds"] == 1.0

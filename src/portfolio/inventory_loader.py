@@ -205,6 +205,11 @@ def _copy_if_needed(source: Path, target: Path, overwrite: bool) -> Path:
     return target
 
 
+def _prefer_existing_raw_source(raw_path: Path, external_path: Path) -> Path:
+    """Use the repository raw copy when present, otherwise fall back to course data."""
+    return raw_path if raw_path.exists() else external_path
+
+
 def _normalize_sheet_name(sheet_name: str) -> str:
     """Map free-form workbook sheet names to canonical sheet keys."""
     key = to_snake_case(strip_accents(sheet_name))
@@ -374,7 +379,8 @@ def load_inventory_workbook(
         If False, empty sheets are ignored.
     """
     cfg = config or ProjectConfig.default()
-    path = _as_path(source) if source is not None else _as_path(cfg.inventory_source)
+    default_source = _prefer_existing_raw_source(cfg.raw_inventory_path, cfg.inventory_source)
+    path = _as_path(source) if source is not None else _as_path(default_source)
     _require_file(path, "inventory")
 
     workbook = pd.read_excel(path, sheet_name=None)

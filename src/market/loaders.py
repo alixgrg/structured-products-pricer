@@ -71,6 +71,11 @@ def _copy_if_needed(source: Path, target: Path, overwrite: bool) -> Path:
     return target
 
 
+def _prefer_existing_raw_source(raw_path: Path, external_path: Path) -> Path:
+    """Use the repository raw copy when present, otherwise fall back to course data."""
+    return raw_path if raw_path.exists() else external_path
+
+
 def _normalize_datetime(series: pd.Series) -> pd.Series:
     """Parse a date-like series into timezone-naive normalized datetimes."""
     parsed = pd.to_datetime(series, errors="coerce", utc=True)
@@ -261,7 +266,8 @@ def load_rate_curves(
 ) -> pd.DataFrame:
     """Read the raw rate curve dataset."""
     cfg = config or ProjectConfig.default()
-    path = _as_path(source) if source is not None else _as_path(cfg.rate_curves_source)
+    default_source = _prefer_existing_raw_source(cfg.raw_rate_curves_path, cfg.rate_curves_source)
+    path = _as_path(source) if source is not None else _as_path(default_source)
     _require_file(path, "rate_curves")
 
     frame = pd.read_parquet(path)
@@ -486,7 +492,8 @@ def load_option_quotes(
         CSV separator. The course file uses ';'. Use None to infer.
     """
     cfg = config or ProjectConfig.default()
-    path = _as_path(source) if source is not None else _as_path(cfg.options_source)
+    default_source = _prefer_existing_raw_source(cfg.raw_options_path, cfg.options_source)
+    path = _as_path(source) if source is not None else _as_path(default_source)
     _require_file(path, "options")
 
     frame = _read_csv_with_fallback(path, sep=sep)

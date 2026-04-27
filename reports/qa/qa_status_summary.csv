@@ -1,0 +1,41 @@
+section,check,observed,expected,status,details
+architecture,project_imports,True,True,PASS,Core src imports succeeded.
+unit_tests,pytest_q,returncode=0,returncode=0,PASS,[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m            ...
+data,rate_curves_loaded,357978,> 0,PASS,
+data,option_quotes_loaded,10456,> 0,PASS,
+data,inventory_loaded,111,> 0,PASS,
+rates,bootstrap_point_count,8,>= 6,PASS,
+rates,discount_factors_positive,0.8334376269921968,> 0,PASS,
+rates,discount_factors_decreasing,"[0.9975062344139651, 0.9922248160938865, 0.9839937024403044, 0.9757647530231426, 0.9675406574349456, 0.9334648086857749, 0.8991928602506313, 0.8334376269921968]",monotonic decreasing,PASS,
+rates,bootstrap_repricing_error_bps,2.1774249070460883e-10,< 5 bps,PASS,
+rates,curve_static_arbitrage,"{'positive_discount_factors': True, 'non_increasing_discount_factors': True, 'min_discount_factor': 0.8334376269921968, 'max_discount_factor': 0.997506234413...",positive discount factors,PASS,
+rates,zero_coupon_price_positive,93.35562574771204,> 0,PASS,
+rates,historical_curve_builds,ValueError: No rate curve data found for country='France' and observation_date=2026-02-25.,no exception,WARN,"Traceback (most recent call last):
+  File ""C:\Users\alixg\AppData\Local\Temp\ipykernel_32032\1386206284.py"", line 54, in <module>
+    market_curve = YieldCurve.from_rate_curves(rate_curves, country=selected_country)
+  File ""C:\Users\alixg\OneDrive - Université Paris-Dauphine\M2 Quant\Produits Structurés\Projet\structured-products-pricer\src\rates\yield_curve.py"", line 128, in from_rate_curves
+        else pd.to_datetime(observation_date).normalize()
+    ...<2 lines>...
+    
+ValueError: No rat..."
+vol_iv,selected_underlying,NVDA,non-null,PASS,
+vol_iv,one_underlying_surface_input,NVDA,single underlying,PASS,
+vol_iv,calibrated_quote_count,351,>= 12,PASS,
+vol_iv,iv_positive,0.4034294328569635,> 0,PASS,
+vol_iv,iv_repricing_error,1.6442402994698568e-13,< 1e-5,PASS,
+vol_svi,svi_fit_success,"{'slice_count': 5.0, 'quote_count': 351.0, 'mean_slice_objective': 3.7030045709833674e-06}",fit succeeds,PASS,
+vol_svi,svi_butterfly_arbitrage_free,"{'butterfly_arbitrage_free': True, 'calendar_arbitrage_free': False, 'min_butterfly_convexity': 0.013889932173327584, 'max_total_variance': 0.030541013808887...",True,PASS,
+vol_svi,svi_calendar_arbitrage_free,"{'butterfly_arbitrage_free': True, 'calendar_arbitrage_free': False, 'min_butterfly_convexity': 0.013889932173327584, 'max_total_variance': 0.030541013808887...",True,WARN,
+vol_ssvi,ssvi_fit_success,"{'v0': 0.20882661150314485, 'v_inf': 0.22831734480846547, 'kappa': 1.000547626442872, 'rho': -0.31931536487440676, 'eta': 0.5224361231475911, 'lambda': 0.680...",fit succeeds,PASS,
+vol_ssvi,ssvi_butterfly_arbitrage_free,"{'butterfly_arbitrage_free': True, 'calendar_arbitrage_free': True, 'min_butterfly_convexity': 0.14727801785746575, 'max_total_variance': 0.03092128522876386...",True,PASS,
+vol_ssvi,ssvi_calendar_arbitrage_free,"{'butterfly_arbitrage_free': True, 'calendar_arbitrage_free': True, 'min_butterfly_convexity': 0.14727801785746575, 'max_total_variance': 0.03092128522876386...",True,PASS,
+vol_surface_selection,selected_surface_available,SSVI,SSVI preferred,PASS,
+market_validation,train_test_split,"train=281, test=70",non-empty test,PASS,
+market_validation,train_surface_fit,SSVI train,fit succeeds,PASS,
+market_validation,repricing_quote_count,70,> 0,PASS,
+market_validation,repricing_within_thresholds,"{'quote_count': 70.0, 'mean_error': -0.11099014370972282, 'mae': 0.25620782010451315, 'rmse': 0.3772270651393857, 'max_abs_error': 1.420884681374524, 'mean_a...",within thresholds,PASS,
+portfolio,inventory_line_count,111,> 0,PASS,
+portfolio,supported_line_count,6,> 0,PASS,
+portfolio,unsupported_lines_flagged,105,"flagged, not silently priced",PASS,
+portfolio,aggregation_total_consistency,"(8681385.71669193, 8681385.71669193)",line sum == portfolio sum,PASS,
+portfolio,unsupported_product_scope,"[{'source_sheet': 'swaps', 'product_type': '<na>', 'error_message': ""Unsupported product row: source_sheet='swaps', product_type='<na>'""}, {'source_sheet': '...",0 unsupported for full scope,WARN,À traiter si tu veux couvrir swaps/autocalls dans la version finale.

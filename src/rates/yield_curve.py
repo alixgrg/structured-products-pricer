@@ -112,18 +112,29 @@ class YieldCurve:
             raise ValueError(f"Missing required columns: {sorted(missing)}")
 
         data = frame.copy()
-        data["observation_date"] = pd.to_datetime(data["observation_date"])
-        selected_date = data["observation_date"].max() if observation_date is None else pd.to_datetime(observation_date)
+        data["observation_date"] = pd.to_datetime(data["observation_date"]).dt.normalize()
+
+        if country is not None:
+            selected_country = country
+            data = data[data["country"].astype(str) == selected_country]
+            if data.empty:
+                raise ValueError(f"No rate curve data found for country={selected_country!r}.")
+        else:
+            selected_country = None
+
+        selected_date = (
+            data["observation_date"].max()
+            if observation_date is None
+            else pd.to_datetime(observation_date).normalize()
+        )
         data = data[data["observation_date"] == selected_date]
 
-        if country is None:
+        if selected_country is None:
             if data.empty:
                 raise ValueError(f"No rate curve data found for date {selected_date}.")
             selected_country = str(data["country"].iloc[0])
-        else:
-            selected_country = country
+            data = data[data["country"].astype(str) == selected_country]
 
-        data = data[data["country"].astype(str) == selected_country]
         if data.empty:
             raise ValueError(
                 f"No rate curve data found for country={selected_country!r} "

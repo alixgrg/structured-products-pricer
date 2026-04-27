@@ -86,6 +86,24 @@ def test_curve_can_be_built_from_normalized_rate_frame() -> None:
     assert curve.zero_rate(2.0) == pytest.approx(0.025)
 
 
+def test_curve_uses_latest_date_after_country_filter() -> None:
+    frame = pd.DataFrame(
+        {
+            "country": ["France", "France", "United States", "United States"],
+            "observation_date": pd.to_datetime(
+                ["2026-02-24", "2026-02-24", "2026-02-25", "2026-02-25"]
+            ),
+            "curve_tenor_years": [1.0, 2.0, 1.0, 2.0],
+            "rate_decimal": [0.02, 0.025, 0.03, 0.035],
+        }
+    )
+
+    curve = YieldCurve.from_rate_curves(frame, country="France")
+
+    assert curve.name == "France 2026-02-24"
+    assert curve.zero_rate(2.0) == pytest.approx(0.025)
+
+
 def test_cubic_interpolation_smoke() -> None:
     pytest.importorskip("scipy")
 

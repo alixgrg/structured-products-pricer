@@ -1,0 +1,3 @@
+surface,butterfly_arbitrage_free,calendar_arbitrage_free,min_butterfly_convexity,max_total_variance,min_total_variance
+SVI,True,False,0.013889932173327584,0.030541013808887924,0.006509955375500092
+SSVI,True,True,0.14727801785746575,0.030921285228763865,0.007202634983409681

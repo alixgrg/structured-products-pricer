@@ -20,6 +20,17 @@ class VolatilitySurfaceLike(Protocol):
 
 
 @dataclass(frozen=True, slots=True)
+class MarketErrorThresholds:
+    """Clear validation thresholds for market repricing diagnostics."""
+
+    abs_price_mae: float = 1e-4
+    abs_price_rmse: float = 5e-4
+    abs_price_max: float = 1e-3
+    abs_relative_price_mae: float = 5e-3
+    abs_vol_mae: float = 5e-4
+
+
+@dataclass(frozen=True, slots=True)
 class RepricingValidationResult:
     """Detailed repricing errors and aggregate summaries."""
 
@@ -27,6 +38,7 @@ class RepricingValidationResult:
     summary: pd.DataFrame
     by_maturity: pd.DataFrame
     by_moneyness_bucket: pd.DataFrame
+    thresholds: MarketErrorThresholds
     calibration_result: CalibrationResult
 
 
@@ -44,6 +56,7 @@ def reprice_vanilla_market_quotes(
     dividend_yield: float = 0.0,
     rate_column: str | None = None,
     dividend_yield_column: str | None = None,
+    thresholds: MarketErrorThresholds | None = None,
 ) -> RepricingValidationResult:
     """Reprice market vanilla quotes and compute model errors.
 
@@ -124,11 +137,14 @@ def reprice_vanilla_market_quotes(
         include_lowest=True,
     )
 
-    summary = _error_summary(data)
+    thresholds = thresholds or MarketErrorThresholds()
+
+    summary = _error_summary(data, thresholds=thresholds)
     by_maturity = _grouped_error_summary(data, "maturity_bucket")
     by_moneyness = _grouped_error_summary(data, "moneyness_bucket")
 
     rmse = float(np.sqrt(np.mean(np.square(data["price_error"]))))
+    within_thresholds = _meets_market_thresholds(summary, thresholds)
     result = CalibrationResult(
         model_name="market_vanilla_repricing_validation",
         parameters={
@@ -137,6 +153,7 @@ def reprice_vanilla_market_quotes(
             "rmse_price": rmse,
             "max_abs_price_error": float(data["abs_price_error"].max()),
             "mae_vol": float(data["abs_vol_error"].mean()) if data["abs_vol_error"].notna().any() else float("nan"),
+            "within_thresholds": float(within_thresholds),
         },
         objective_value=rmse,
     )
@@ -146,21 +163,51 @@ def reprice_vanilla_market_quotes(
         summary=summary,
         by_maturity=by_maturity,
         by_moneyness_bucket=by_moneyness,
+        thresholds=thresholds,
         calibration_result=result,
     )
 
 
-def _error_summary(data: pd.DataFrame) -> pd.DataFrame:
+def _error_summary(data: pd.DataFrame, *, thresholds: MarketErrorThresholds) -> pd.DataFrame:
+    mae = float(data["abs_price_error"].mean())
+    rmse = float(np.sqrt(np.mean(np.square(data["price_error"]))))
+    max_abs = float(data["abs_price_error"].max())
+    mean_abs_relative = float(data["abs_relative_price_error"].mean())
+    mean_abs_vol = float(data["abs_vol_error"].mean()) if data["abs_vol_error"].notna().any() else float("nan")
+
     return pd.DataFrame(
         {
             "quote_count": [float(len(data))],
             "mean_error": [float(data["price_error"].mean())],
-            "mae": [float(data["abs_price_error"].mean())],
-            "rmse": [float(np.sqrt(np.mean(np.square(data["price_error"]))))],
-            "max_abs_error": [float(data["abs_price_error"].max())],
-            "mean_abs_relative_error": [float(data["abs_relative_price_error"].mean())],
-            "mean_abs_vol_error": [float(data["abs_vol_error"].mean()) if data["abs_vol_error"].notna().any() else float("nan")],
+            "mae": [mae],
+            "rmse": [rmse],
+            "max_abs_error": [max_abs],
+            "mean_abs_relative_error": [mean_abs_relative],
+            "mean_abs_vol_error": [mean_abs_vol],
+            "threshold_abs_price_mae": [thresholds.abs_price_mae],
+            "threshold_abs_price_rmse": [thresholds.abs_price_rmse],
+            "threshold_abs_price_max": [thresholds.abs_price_max],
+            "threshold_abs_relative_price_mae": [thresholds.abs_relative_price_mae],
+            "threshold_abs_vol_mae": [thresholds.abs_vol_mae],
+            "within_thresholds": [bool(
+                mae <= thresholds.abs_price_mae
+                and rmse <= thresholds.abs_price_rmse
+                and max_abs <= thresholds.abs_price_max
+                and mean_abs_relative <= thresholds.abs_relative_price_mae
+                and (np.isnan(mean_abs_vol) or mean_abs_vol <= thresholds.abs_vol_mae)
+            )],
         }
+    )
+
+
+def _meets_market_thresholds(summary: pd.DataFrame, thresholds: MarketErrorThresholds) -> bool:
+    row = summary.iloc[0]
+    return bool(
+        float(row["mae"]) <= thresholds.abs_price_mae
+        and float(row["rmse"]) <= thresholds.abs_price_rmse
+        and float(row["max_abs_error"]) <= thresholds.abs_price_max
+        and float(row["mean_abs_relative_error"]) <= thresholds.abs_relative_price_mae
+        and (pd.isna(row["mean_abs_vol_error"]) or float(row["mean_abs_vol_error"]) <= thresholds.abs_vol_mae)
     )
 
 
@@ -179,6 +226,7 @@ def _grouped_error_summary(data: pd.DataFrame, group_column: str) -> pd.DataFram
 
 
 __all__ = [
+    "MarketErrorThresholds",
     "RepricingValidationResult",
     "VolatilitySurfaceLike",
     "reprice_vanilla_market_quotes",

@@ -173,7 +173,12 @@ class SVIVolSurface:
             check_butterfly_arbitrage_slice(s, log_moneyness_grid=log_moneyness_grid, tolerance=tolerance)
             for s in self.slices
         ]
-        calendar_ok = check_calendar_arbitrage_surface(self, log_moneyness_grid=log_moneyness_grid, tolerance=tolerance)
+        calendar_ok = check_calendar_arbitrage_surface(
+            self,
+            log_moneyness_grid=log_moneyness_grid,
+            tolerance=tolerance,
+            maturity_grid=self.maturities,
+        )
 
         return {
             "butterfly_arbitrage_free": bool(all(item["ok"] for item in butterfly)),
@@ -418,21 +423,28 @@ class SSVIVolSurface:
         if log_moneyness_grid is None:
             log_moneyness_grid = np.linspace(-0.7, 0.7, 101)
 
-        pseudo_slices = tuple(
-            SVISlice(
-                maturity=float(t),
-                params=fit_svi_slice(
-                    log_moneyness_grid,
-                    np.asarray(self.total_variance(float(t), log_moneyness_grid), dtype=float),
-                    maturity=float(t),
-                ).params,
-                objective_value=0.0,
-                quote_count=len(log_moneyness_grid),
+        butterfly = [
+            _check_butterfly_from_total_variance(
+                np.asarray(self.total_variance(float(t), log_moneyness_grid), dtype=float),
+                log_moneyness_grid=log_moneyness_grid,
+                tolerance=tolerance,
             )
             for t in maturity_grid
+        ]
+        calendar_ok = check_calendar_arbitrage_surface(
+            self,
+            log_moneyness_grid=log_moneyness_grid,
+            tolerance=tolerance,
+            maturity_grid=maturity_grid,
         )
-        surface = SVIVolSurface(pseudo_slices, CalibrationResult("ssvi_diagnostics"))
-        return surface.diagnostics(log_moneyness_grid=log_moneyness_grid, tolerance=tolerance)
+
+        return {
+            "butterfly_arbitrage_free": bool(all(item["ok"] for item in butterfly)),
+            "calendar_arbitrage_free": bool(calendar_ok),
+            "min_butterfly_convexity": float(min(item["min_convexity"] for item in butterfly)),
+            "max_total_variance": float(max(np.max(np.asarray(self.total_variance(float(t), log_moneyness_grid), dtype=float)) for t in maturity_grid)),
+            "min_total_variance": float(min(np.min(np.asarray(self.total_variance(float(t), log_moneyness_grid), dtype=float)) for t in maturity_grid)),
+        }
 
 
 def ssvi_theta(maturity: float | np.ndarray, params: SSVIParameters) -> float | np.ndarray:
@@ -514,11 +526,24 @@ def check_butterfly_arbitrage_slice(
     tolerance: float = 1e-8,
 ) -> dict[str, bool | float]:
     """Check call monotonicity and convexity in strike for one smile slice."""
+    return _check_butterfly_from_total_variance(
+        np.asarray(svi_slice.total_variance(np.asarray(log_moneyness_grid, dtype=float)), dtype=float),
+        log_moneyness_grid=log_moneyness_grid,
+        tolerance=tolerance,
+    )
+
+
+def _check_butterfly_from_total_variance(
+    total_variance: np.ndarray,
+    *,
+    log_moneyness_grid: np.ndarray,
+    tolerance: float = 1e-8,
+) -> dict[str, bool | float]:
     k = np.asarray(log_moneyness_grid, dtype=float)
     order = np.argsort(k)
     k = k[order]
     strikes = np.exp(k)
-    total_variance = np.asarray(svi_slice.total_variance(k), dtype=float)
+    total_variance = np.asarray(total_variance, dtype=float)[order]
     calls = _forward_call_prices_from_total_variance(strikes, total_variance)
 
     decreasing = bool(np.all(np.diff(calls) <= tolerance))
@@ -541,9 +566,13 @@ def check_calendar_arbitrage_surface(
     *,
     log_moneyness_grid: np.ndarray,
     tolerance: float = 1e-8,
+    maturity_grid: np.ndarray | None = None,
 ) -> bool:
     """Calendar no-arbitrage proxy: total variance non-decreasing in maturity."""
-    maturities = surface.maturities
+    if maturity_grid is None:
+        maturity_grid = getattr(surface, "maturities", np.array([1 / 12, 0.25, 0.5, 1.0, 2.0, 5.0], dtype=float))
+
+    maturities = np.asarray(maturity_grid, dtype=float)
     k = np.asarray(log_moneyness_grid, dtype=float)
     previous = None
     for maturity in maturities:
