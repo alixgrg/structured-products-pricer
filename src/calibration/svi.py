@@ -15,8 +15,7 @@ arbitrage checks.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from math import exp, log, sqrt
-from typing import Iterable
+from math import sqrt
 
 import numpy as np
 import pandas as pd

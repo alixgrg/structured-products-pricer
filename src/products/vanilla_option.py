@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
+from src.products._helpers import extract_spot
 from src.products.base_product import Product
 
 
@@ -63,7 +64,7 @@ class VanillaOption(Product):
 
     def payoff(self, market_data) -> float:
         """Return the option payoff at maturity for a given spot."""
-        spot = _extract_spot(market_data)
+        spot = extract_spot(market_data)
 
         if self.option_type == "call":
             intrinsic = max(spot - self.strike, 0.0)
@@ -77,18 +78,3 @@ class VanillaOption(Product):
         return ["spot", "rate", "volatility", "dividend_yield"]
 
 
-def _extract_spot(market_data) -> float:
-    """Extract a spot from a MarketData object, dict, or raw number."""
-    if isinstance(market_data, int | float):
-        return float(market_data)
-
-    if isinstance(market_data, dict):
-        if "spot" not in market_data:
-            raise ValueError("market_data dict must contain a 'spot' key.")
-        return float(market_data["spot"])
-
-    spot = getattr(market_data, "spot", None)
-    if spot is None:
-        raise ValueError("market_data must provide a spot.")
-
-    return float(spot)

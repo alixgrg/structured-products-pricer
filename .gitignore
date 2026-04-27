@@ -4,6 +4,8 @@ __pycache__/
 *.pyo
 *.pyd
 .pytest_cache/
+.pytest_tmp/
+.tmp_pytest/
 .ruff_cache/
 
 # Environments
@@ -25,6 +27,18 @@ data/processed/*
 # Outputs
 outputs/*
 !outputs/.gitkeep
+outputs/pytest_tmp*/
+outputs/tmp*/
+
+# QA scratch exports
+reports/qa/qa_calibrated_*.csv
+reports/qa/qa_underlying_surface_selection.csv
+reports/qa/qa_repricing_by_*.csv
+reports/qa/qa_repricing_line_errors.csv
+reports/qa/qa_portfolio_line_valuations.csv
+reports/qa/qa_status_by_section.csv
+reports/qa/*_tmp*.csv
+reports/qa/*_latest.csv
 
 # OS
 .DS_Store

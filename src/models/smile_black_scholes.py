@@ -10,6 +10,11 @@ import numpy as np
 from src.market.market_data import MarketData
 from src.models.base_model import PricingModel
 from src.models.black_scholes import BlackScholesResult, black_scholes_price_and_greeks
+from src.models.pricing_inputs import (
+    require_market_spot,
+    resolve_dividend_yield,
+    resolve_pricing_rate,
+)
 from src.products.vanilla_option import VanillaOption
 from src.rates.yield_curve import YieldCurve
 
@@ -66,25 +71,22 @@ class SmileBlackScholesModel(PricingModel):
         )
 
     def _resolve_spot(self, market_data: MarketData | None) -> float:
-        if market_data is None or market_data.spot is None:
-            raise ValueError("market_data.spot is required.")
-        return float(market_data.spot)
+        return require_market_spot(market_data)
 
     def _resolve_rate(self, product: VanillaOption, market_data: MarketData | None) -> float:
-        if self.yield_curve is not None:
-            return float(self.yield_curve.zero_rate(product.maturity))
-        if self.rate is not None:
-            return float(self.rate)
-        if market_data is not None and market_data.rate is not None:
-            return float(market_data.rate)
-        raise ValueError("No rate available. Provide model.rate, yield_curve, or market_data.rate.")
+        return resolve_pricing_rate(
+            maturity=product.maturity,
+            yield_curve=self.yield_curve,
+            model_rate=self.rate,
+            market_data=market_data,
+        )
 
     def _resolve_dividend_yield(self, product: VanillaOption, market_data: MarketData | None) -> float:
-        if product.dividend_yield is not None:
-            return float(product.dividend_yield)
-        if market_data is not None:
-            return float(market_data.dividend_yield)
-        return float(self.dividend_yield)
+        return resolve_dividend_yield(
+            product_dividend_yield=product.dividend_yield,
+            model_dividend_yield=self.dividend_yield,
+            market_data=market_data,
+        )
 
 
 __all__ = ["SmileBlackScholesModel"]

@@ -11,7 +11,7 @@ The application supports:
 - pricing of financial products,
 - portfolio inventory management,
 - risk aggregation,
-- Streamlit dashboard.
+- dashboard configuration scaffolding.
 
 ## Products
 
@@ -35,26 +35,29 @@ Initial scope:
 - Nelson-Siegel curve fitting
 - Black-Scholes pricing
 - Implied volatility calibration
-- Static replication model
+- SVI benchmark surface
+- SSVI volatility surface
 
 Optional extensions:
 - Monte Carlo GBM
-- SSVI volatility surface
+- Static replication model
 
 ## Project structure
 
 ```text
 src/
 |- calibration/
+|- conventions/
 |- dashboard/
 |- factory/
 |- market/
 |- models/
 |- portfolio/
+|- rates/
 |- products/
 |- risk/
 |- config.py
-`- conventions.py
+`- convention.py
 ```
 
 ## Naming conventions
@@ -81,9 +84,9 @@ external sources -> data/raw -> data/interim -> data/processed
 
 ## Current loaders
 
-- `src.market.loaders.load_rate_curves`: reads and normalizes `1.rate_curves.parquet`.
-- `src.market.loaders.load_option_quotes`: reads and normalizes `2.options.csv` with the `;` separator.
-- `src.portfolio.inventory_loader.load_inventory_workbook`: reads and normalizes all sheets from `Inventaire.xlsx`.
+- `src.market.loaders.load_rate_curves`: reads and normalizes `data/raw/rate_curves.parquet`.
+- `src.market.loaders.load_option_quotes`: reads and normalizes `data/raw/options.csv` with the `;` separator.
+- `src.portfolio.inventory_loader.load_inventory_workbook`: reads and normalizes all sheets from `data/raw/inventory.xlsx`.
 
 By default, loaders first use the self-contained copies in `data/raw/` when
 present, then fall back to the original course/project paths. This keeps the
@@ -94,6 +97,16 @@ notebooks reproducible without downloading external market data.
 The stabilized market-foundations layer is checked by
 `notebooks/00_QA_clean_structured_products_pricer.ipynb` and exports QA tables
 to `reports/qa/`.
+
+Stable QA exports kept under version control:
+- `qa_status_summary.csv`;
+- `qa_repricing_summary.csv`;
+- `qa_vol_filter_report.csv`;
+- `qa_vol_surface_diagnostics.csv`;
+- `qa_bootstrap_points.csv`;
+- `qa_bootstrap_instrument_checks.csv`;
+- `qa_portfolio_by_product.csv`;
+- `qa_portfolio_by_portfolio.csv`.
 
 Validated with the available course data:
 - rate-curve loader, tenor normalization, zero-rate interpolation and
@@ -124,11 +137,5 @@ Known validation limits:
 
 ## Notebooks
 
-- `notebooks/00_architecture.ipynb`: architecture overview and data flow walkthrough.
-- `notebooks/01_data_quality.ipynb`: first-pass market and inventory data quality checks.
-- `notebooks/02_rates.ipynb`: curve construction, interpolation, discount factors and zero-coupon pricing.
-- `notebooks/03_vanilla_pricing.ipynb`: vanilla call/put pricing, Greeks, parity and sensitivities.
-- `notebooks/04_vol_calibration.ipynb`: implied-vol calibration, smiles, interpolated surface and calibration errors.
-- `notebooks/05_option_strategies.ipynb`: call spread, put spread, butterfly payoff and decomposition checks.
-- `notebooks/06_structured_notes.ipynb`: structured note composition, payoff scenarios and factory mapping.
-- `notebooks/07_portfolio_risk.ipynb`: portfolio valuation, risk aggregation, pivots and risk heatmaps.
+- `notebooks/00_QA_clean_structured_products_pricer.ipynb`: validation notebook to run before continuing development.
+- `notebooks/99_benchmark_pricer_v2_appendix.ipynb`: cleaned benchmark appendix kept for traceability, not for reference QA exports.

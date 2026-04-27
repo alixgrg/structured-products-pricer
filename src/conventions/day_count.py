@@ -12,7 +12,6 @@ from datetime import date, datetime
 from typing import Literal
 
 import pandas as pd
-from dateutil.relativedelta import relativedelta
 
 DayCountConvention = Literal["ACT/360", "ACT/365F", "ACT/ACT", "30/360", "30E/360"]
 TenorUnit = Literal["D", "W", "M", "Y"]
@@ -155,4 +154,3 @@ def _year_fraction_30e_360(start: date, end: date) -> float:
 
 def _is_leap_year(year: int) -> bool:
     return year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)
-

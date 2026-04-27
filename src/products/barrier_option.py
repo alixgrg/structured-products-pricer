@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from src.products._helpers import extract_spot
 from src.products.base_product import Product
 
 
@@ -50,7 +51,7 @@ class BarrierOption(Product):
         object.__setattr__(self, "barrier_type", barrier_type)
 
     def payoff(self, market_data) -> float:
-        spot = _extract_spot(market_data)
+        spot = extract_spot(market_data)
 
         touched = _is_terminal_barrier_touched(spot, self.barrier_type, self.barrier)
         knocked_out = self.barrier_type.endswith("out") and touched
@@ -69,22 +70,6 @@ class BarrierOption(Product):
 
     def get_risk_factors(self) -> list[str]:
         return ["spot", "rate", "volatility", "barrier"]
-
-
-def _extract_spot(market_data) -> float:
-    if isinstance(market_data, (int, float)):
-        return float(market_data)
-
-    if isinstance(market_data, dict):
-        if "spot" not in market_data:
-            raise ValueError("market_data dict must contain a 'spot' key.")
-        return float(market_data["spot"])
-
-    spot = getattr(market_data, "spot", None)
-    if spot is None:
-        raise ValueError("market_data must provide a spot.")
-
-    return float(spot)
 
 
 def _is_terminal_barrier_touched(spot: float, barrier_type: str, barrier: float) -> bool:

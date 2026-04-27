@@ -23,8 +23,8 @@ external market data is downloaded.
 - **Market repricing**: the notebook validates vanilla repricing on a
   deterministic train/test split inside the available option panel.
 - **Portfolio ingestion**: inventory rows are loaded and aggregations are
-  checked. Unsupported products are explicitly flagged instead of silently
-  priced.
+  checked for the currently supported product families. Swaps, autocalls and
+  other unsupported rows are explicitly flagged instead of silently priced.
 
 ## Data Limits To Mention In The Report
 
@@ -50,3 +50,10 @@ Expected stabilized status:
 - `WARN` accepted only for documented limits, currently raw SVI calendar
   diagnostics and unsupported portfolio product scope;
 - SSVI, curve construction, loader checks and vanilla repricing should pass.
+
+Reference QA exports kept in `reports/qa/`:
+- status summary;
+- repricing summary;
+- volatility filter and surface diagnostics;
+- bootstrap points and instrument checks;
+- portfolio aggregations by product and by portfolio.

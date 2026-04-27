@@ -9,6 +9,7 @@ import numpy as np
 
 from src.market.market_data import MarketData
 from src.models.base_model import PricingModel
+from src.models.pricing_inputs import resolve_pricing_rate
 from src.products.zero_coupon_bond import ZeroCouponBond
 from src.rates.yield_curve import YieldCurve
 
@@ -81,10 +82,4 @@ class DiscountingModel(PricingModel):
 
     def _resolve_rate(self, market_data: MarketData | None = None) -> float:
         """Resolve the pricing rate."""
-        if self.rate is not None:
-            return float(self.rate)
-
-        if market_data is not None and market_data.rate is not None:
-            return float(market_data.rate)
-
-        raise ValueError("No rate available. Provide model.rate, yield_curve, or market_data.rate.")
+        return resolve_pricing_rate(model_rate=self.rate, market_data=market_data)

@@ -14,72 +14,20 @@ external -> raw -> interim -> processed
 from __future__ import annotations
 
 from pathlib import Path
-from shutil import copy2
-from typing import Iterable
 
 import pandas as pd
 
 from src.config import ProjectConfig
 from src.convention import DEFAULT_YEAR_BASIS, canonicalize_columns, tenor_to_years
-
-
-# ---------------------------------------------------------------------------
-# Generic helpers
-# ---------------------------------------------------------------------------
-
-
-def _as_path(source: str | Path) -> Path:
-    """Return a resolved Path without requiring the file to exist."""
-    return Path(source).expanduser().resolve()
-
-
-def _require_file(path: Path, dataset_name: str) -> None:
-    """Raise a clear error if an input file is missing."""
-    if not path.exists():
-        raise FileNotFoundError(
-            f"{dataset_name} file not found: {path}. "
-            "Check ProjectConfig paths or set the relevant environment variable."
-        )
-    if not path.is_file():
-        raise ValueError(f"{dataset_name} path is not a file: {path}")
-
-
-def _require_columns(
-    frame: pd.DataFrame,
-    required_columns: Iterable[str],
-    dataset_name: str,
-) -> None:
-    """Ensure a dataframe contains the expected columns."""
-    required = set(required_columns)
-    available = set(frame.columns)
-    missing = sorted(required.difference(available))
-    if missing:
-        raise ValueError(
-            f"{dataset_name} is missing required columns: {missing}. "
-            f"Available columns are: {sorted(available)}"
-        )
-
-
-def _copy_if_needed(source: Path, target: Path, overwrite: bool) -> Path:
-    """Copy a source file to a target path if needed."""
-    _require_file(source, "source")
-    target.parent.mkdir(parents=True, exist_ok=True)
-
-    if overwrite or not target.exists():
-        copy2(source, target)
-
-    return target
-
-
-def _prefer_existing_raw_source(raw_path: Path, external_path: Path) -> Path:
-    """Use the repository raw copy when present, otherwise fall back to course data."""
-    return raw_path if raw_path.exists() else external_path
-
-
-def _normalize_datetime(series: pd.Series) -> pd.Series:
-    """Parse a date-like series into timezone-naive normalized datetimes."""
-    parsed = pd.to_datetime(series, errors="coerce", utc=True)
-    return parsed.dt.tz_localize(None).dt.normalize()
+from src.io_utils import (
+    as_path as _as_path,
+    copy_if_needed as _copy_if_needed,
+    normalize_datetime as _normalize_datetime,
+    prefer_existing_raw_source as _prefer_existing_raw_source,
+    require_columns as _require_columns,
+    require_file as _require_file,
+    to_numeric as _to_numeric,
+)
 
 
 def _normalize_unix_or_datetime(series: pd.Series) -> pd.Series:
@@ -98,23 +46,6 @@ def _normalize_unix_or_datetime(series: pd.Series) -> pd.Series:
         parsed = pd.to_datetime(series, errors="coerce", utc=True)
 
     return parsed.dt.tz_localize(None)
-
-
-def _to_numeric(series: pd.Series) -> pd.Series:
-    """Convert a series to numeric values, accepting decimal commas and percentages."""
-    as_string = series.astype("string").str.strip()
-
-    is_percent = as_string.str.endswith("%", na=False)
-    cleaned = (
-        as_string.str.replace("%", "", regex=False)
-        .str.replace(",", ".", regex=False)
-        .str.replace(" ", "", regex=False)
-    )
-
-    numeric = pd.to_numeric(cleaned, errors="coerce")
-    numeric.loc[is_percent] = numeric.loc[is_percent] / 100.0
-
-    return numeric
 
 
 def _to_boolean(series: pd.Series) -> pd.Series:
