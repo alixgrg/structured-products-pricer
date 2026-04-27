@@ -100,7 +100,7 @@ class ProjectConfig:
         return self.processed_dir / "inventory_dataset_summary.csv"
 
     def interim_inventory_path(self, sheet_name: str) -> Path:
-        from src.conventions import to_snake_case
+        from src.convention import to_snake_case
 
         return self.interim_dir / f"inventory_{to_snake_case(sheet_name)}.csv"
 

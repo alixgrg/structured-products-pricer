@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from math import erf, exp, log, pi, sqrt
 
 import numpy as np
@@ -23,6 +23,9 @@ class BlackScholesResult:
     vega: float
     theta: float
     rho: float
+
+    def to_dict(self) -> dict[str, float]:
+        return asdict(self)
 
 
 @dataclass(frozen=True, slots=True)

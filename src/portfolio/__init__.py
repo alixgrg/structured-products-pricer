@@ -1,6 +1,11 @@
 """Portfolio package exports."""
 
-from src.portfolio.book import PortfolioSnapshot
+from src.portfolio.book import (
+    PortfolioMarketContext,
+    PortfolioSnapshot,
+    PortfolioValuationEngine,
+    PortfolioValuationResult,
+)
 from src.portfolio.inventory_loader import (
     build_inventory_data_assets,
     combine_inventory_sheets,
@@ -11,7 +16,10 @@ from src.portfolio.inventory_loader import (
 )
 
 __all__ = [
+    "PortfolioMarketContext",
     "PortfolioSnapshot",
+    "PortfolioValuationEngine",
+    "PortfolioValuationResult",
     "build_inventory_data_assets",
     "combine_inventory_sheets",
     "inventory_dataset_summary",

@@ -20,7 +20,7 @@ from typing import Iterable
 import pandas as pd
 
 from src.config import ProjectConfig
-from src.conventions import DEFAULT_YEAR_BASIS, canonicalize_columns, tenor_to_years
+from src.convention import DEFAULT_YEAR_BASIS, canonicalize_columns, tenor_to_years
 
 
 # ---------------------------------------------------------------------------

@@ -92,3 +92,6 @@ external sources -> data/raw -> data/interim -> data/processed
 - `notebooks/02_rates.ipynb`: curve construction, interpolation, discount factors and zero-coupon pricing.
 - `notebooks/03_vanilla_pricing.ipynb`: vanilla call/put pricing, Greeks, parity and sensitivities.
 - `notebooks/04_vol_calibration.ipynb`: implied-vol calibration, smiles, interpolated surface and calibration errors.
+- `notebooks/05_option_strategies.ipynb`: call spread, put spread, butterfly payoff and decomposition checks.
+- `notebooks/06_structured_notes.ipynb`: structured note composition, payoff scenarios and factory mapping.
+- `notebooks/07_portfolio_risk.ipynb`: portfolio valuation, risk aggregation, pivots and risk heatmaps.
