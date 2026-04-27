@@ -89,3 +89,6 @@ external sources -> data/raw -> data/interim -> data/processed
 
 - `notebooks/00_architecture.ipynb`: architecture overview and data flow walkthrough.
 - `notebooks/01_data_quality.ipynb`: first-pass market and inventory data quality checks.
+- `notebooks/02_rates.ipynb`: curve construction, interpolation, discount factors and zero-coupon pricing.
+- `notebooks/03_vanilla_pricing.ipynb`: vanilla call/put pricing, Greeks, parity and sensitivities.
+- `notebooks/04_vol_calibration.ipynb`: implied-vol calibration, smiles, interpolated surface and calibration errors.
