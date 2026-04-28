@@ -545,7 +545,7 @@ def build_inventory_data_assets(
 # ---------------------------------------------------------------------------
 
 def build_pricing_inventory(
-    inventory_by_sheet: dict[str, pd.DataFrame],
+    inventory_by_sheet: dict[str, pd.DataFrame] | pd.DataFrame,
 ) -> pd.DataFrame:
     """Create a product-level inventory ready for pricing.
 
@@ -553,12 +553,24 @@ def build_pricing_inventory(
     creates a cleaner product-level view:
 
     - one row = one product;
+    - accepts either the sheet dict from ``load_inventory_workbook`` or a
+      combined dataframe containing ``source_sheet``;
     - autocalls are grouped by product_id;
     - product_type is inferred when missing;
     - basis swaps are identified when fixed_rate is missing but two floating
       indices are available;
     - position_sign is separated from positive product notional.
     """
+    if isinstance(inventory_by_sheet, pd.DataFrame):
+        if inventory_by_sheet.empty:
+            return pd.DataFrame()
+        if "source_sheet" not in inventory_by_sheet.columns:
+            raise ValueError("inventory dataframe must contain a 'source_sheet' column.")
+        inventory_by_sheet = {
+            str(sheet_name): group.copy()
+            for sheet_name, group in inventory_by_sheet.groupby("source_sheet", dropna=False)
+        }
+
     if not inventory_by_sheet:
         return pd.DataFrame()
 
@@ -647,7 +659,9 @@ def _build_pricing_autocalls(frame: pd.DataFrame) -> pd.DataFrame:
         if "barrier_protection" not in first or pd.isna(first.get("barrier_protection")):
             first["barrier_protection"] = 0.70
 
-        if "notional" not in first or pd.isna(first.get("notional")):
+        if "booking_notional" in first and pd.notna(first.get("booking_notional")):
+            first["notional"] = float(first["booking_notional"])
+        elif "notional" not in first or pd.isna(first.get("notional")):
             first["notional"] = 100.0
 
         rows.append(first)

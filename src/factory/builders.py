@@ -337,7 +337,9 @@ def infer_product_type_key(row: RowLike) -> str:
     if source_sheet in {"structured_notes", "structured notes", "notes_structurees"}:
         return "structured note"
     if source_sheet in {"bonds", "bond"}:
-        if "coupon" in product_type:
+        if "zero" in text or "zcb" in text:
+            return "zero coupon bond"
+        if "coupon" in text:
             return "coupon bond"
         return "zero coupon bond"
 
@@ -359,10 +361,10 @@ def infer_product_type_key(row: RowLike) -> str:
         return "autocall"
     if "swap" in text or "irs" in text:
         return "interest rate swap"
-    if "coupon" in text and "bond" in text:
-        return "coupon bond"
     if "zero" in text or "zcb" in text:
         return "zero coupon bond"
+    if "coupon" in text and "bond" in text:
+        return "coupon bond"
     if "put" in text:
         return "put"
     if "call" in text:
@@ -446,9 +448,16 @@ def _maturity(row: RowLike) -> float:
     raise ValueError("maturity requires time_to_maturity_years or valuation_date + maturity_date.")
 
 
-def _positive_notional(row: RowLike, *, default: float) -> float:
-    raw = _get(row, "position_size", "notional", "quantity", "nominal", "quantite", default=default)
-    return max(abs(float(raw)), 1e-12)
+def _positive_notional(row: RowLike, default: float = 1.0) -> float:
+    value = _get(
+        row,
+        "booking_notional",
+        "notional",
+        "position_size",
+        "quantity",
+        default=default,
+    )
+    return abs(_float_required(value, "notional"))
 
 def _notional(row: RowLike, *, default: float) -> float:
     # Backward-compatible wrapper: this prevents negative notionals from becoming 1e-12.

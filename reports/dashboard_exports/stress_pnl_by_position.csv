@@ -1,0 +1,79 @@
+portfolio,risk_currency,product_id,product_type,product_class,underlying,risk_underlying,maturity_bucket,strike_bucket,scenario_price,base_price,scenario,base_scenario,pnl
+PF4_Balanced_Multi_Product,USD,PF4_Balanced_Multi_Product__options-4,Butterfly,Butterfly,AAPL,AAPL,0-6M,low,1935784.8253518362,2051422.698009166,Vol +5pts,Base,-115637.87265732978
+PF3_Convexity_Protection,USD,PF3_Convexity_Protection__options-5,Call,BarrierOption,AAPL,AAPL,0-6M,atm,29646.952172102912,43095.960164989505,Vol +5pts,Base,-13449.007992886593
+PF1_Defensive_Income,USD,PF1_Defensive_Income__options-2,Call Spread,CallSpread,AAPL,AAPL,0-6M,atm,731792.7001370398,732425.5991022432,Vol +5pts,Base,-632.8989652034361
+PF2_Equity_Yield,USD,PF2_Equity_Yield__structured_notes-3,Capped Capital Protected Note,CappedCapitalProtectedNote,AAPL,AAPL,6M-1Y,atm,112.33328057562021,110.58156781608166,Vol +5pts,Base,1.7517127595385489
+PF4_Balanced_Multi_Product,USD,PF4_Balanced_Multi_Product__structured_notes-2,Reverse Convertible,ReverseConvertible,AAPL,AAPL,1Y-2Y,atm,45.729726221061114,47.00002645133897,Vol +5pts,Base,-1.2703002302778543
+PF1_Defensive_Income,USD,PF1_Defensive_Income__structured_notes-4,Reverse Convertible,ReverseConvertible,AAPL,AAPL,6M-1Y,atm,64.19203870062957,65.43587996332377,Vol +5pts,Base,-1.243841262694204
+PF2_Equity_Yield,USD,PF2_Equity_Yield__1,Autocall,AutocallProduct,AAPL,AAPL,5Y-10Y,NA,85.6919983857451,86.1766607529178,Vol +5pts,Base,-0.48466236717270306
+PF4_Balanced_Multi_Product,USD,PF4_Balanced_Multi_Product__1,Autocall,AutocallProduct,AAPL,AAPL,5Y-10Y,NA,85.6919983857451,86.1766607529178,Vol +5pts,Base,-0.48466236717270306
+PF1_Defensive_Income,EUR,PF1_Defensive_Income__swaps-1,Interest Rate Swap,InterestRateSwap,EUR_RATE_CURVE,EUR_RATE_CURVE,6M-1Y,NA,12008.897854856354,12008.897854856354,Vol +5pts,Base,0.0
+PF2_Equity_Yield,EUR,PF2_Equity_Yield__swaps-2,Interest Rate Swap,InterestRateSwap,EUR_RATE_CURVE,EUR_RATE_CURVE,1Y-2Y,NA,121988.21313808925,121988.21313808925,Vol +5pts,Base,0.0
+PF3_Convexity_Protection,EUR,PF3_Convexity_Protection__swaps-3,Interest Rate Swap,InterestRateSwap,EUR_RATE_CURVE,EUR_RATE_CURVE,1Y-2Y,NA,50307.37643349367,50307.37643349367,Vol +5pts,Base,0.0
+PF3_Convexity_Protection,EUR,PF3_Convexity_Protection__swaps-4,Basis Swap,BasisSwap,EUR_RATE_CURVE,EUR_RATE_CURVE,5Y-10Y,NA,3.4924596548080444e-10,3.4924596548080444e-10,Vol +5pts,Base,0.0
+PF4_Balanced_Multi_Product,EUR,PF4_Balanced_Multi_Product__swaps-5,Interest Rate Swap,InterestRateSwap,EUR_RATE_CURVE,EUR_RATE_CURVE,10Y+,NA,1997540.4968210577,1997540.4968210577,Vol +5pts,Base,0.0
+PF4_Balanced_Multi_Product,USD,PF4_Balanced_Multi_Product__options-4,Butterfly,Butterfly,AAPL,AAPL,0-6M,atm,1738478.2258344563,0.0,Risk-off,Base,1738478.2258344563
+PF4_Balanced_Multi_Product,EUR,PF4_Balanced_Multi_Product__swaps-5,Interest Rate Swap,InterestRateSwap,EUR_RATE_CURVE,EUR_RATE_CURVE,10Y+,NA,1571648.664550024,1997540.4968210577,Risk-off,Base,-425891.83227103367
+PF1_Defensive_Income,USD,PF1_Defensive_Income__options-2,Call Spread,CallSpread,AAPL,AAPL,0-6M,high,258523.89516026992,0.0,Risk-off,Base,258523.89516026992
+PF3_Convexity_Protection,USD,PF3_Convexity_Protection__options-5,Call,BarrierOption,AAPL,AAPL,0-6M,high,37717.66010459524,0.0,Risk-off,Base,37717.66010459524
+PF2_Equity_Yield,EUR,PF2_Equity_Yield__swaps-2,Interest Rate Swap,InterestRateSwap,EUR_RATE_CURVE,EUR_RATE_CURVE,1Y-2Y,NA,107777.12511427075,121988.21313808925,Risk-off,Base,-14211.088023818505
+PF3_Convexity_Protection,EUR,PF3_Convexity_Protection__swaps-3,Interest Rate Swap,InterestRateSwap,EUR_RATE_CURVE,EUR_RATE_CURVE,1Y-2Y,NA,45512.576462537785,50307.37643349367,Risk-off,Base,-4794.799970955886
+PF1_Defensive_Income,EUR,PF1_Defensive_Income__swaps-1,Interest Rate Swap,InterestRateSwap,EUR_RATE_CURVE,EUR_RATE_CURVE,6M-1Y,NA,7822.180297503091,12008.897854856354,Risk-off,Base,-4186.717557353262
+PF2_Equity_Yield,USD,PF2_Equity_Yield__1,Autocall,AutocallProduct,AAPL,AAPL,5Y-10Y,NA,81.39623165525937,86.1766607529178,Risk-off,Base,-4.780429097658427
+PF4_Balanced_Multi_Product,USD,PF4_Balanced_Multi_Product__1,Autocall,AutocallProduct,AAPL,AAPL,5Y-10Y,NA,81.39623165525937,86.1766607529178,Risk-off,Base,-4.780429097658427
+PF2_Equity_Yield,USD,PF2_Equity_Yield__structured_notes-3,Capped Capital Protected Note,CappedCapitalProtectedNote,AAPL,AAPL,6M-1Y,atm,112.1122289422906,110.58156781608166,Risk-off,Base,1.5306611262089405
+PF4_Balanced_Multi_Product,USD,PF4_Balanced_Multi_Product__structured_notes-2,Reverse Convertible,ReverseConvertible,AAPL,AAPL,1Y-2Y,atm,45.4733437529613,47.00002645133897,Risk-off,Base,-1.5266826983776696
+PF1_Defensive_Income,USD,PF1_Defensive_Income__structured_notes-4,Reverse Convertible,ReverseConvertible,AAPL,AAPL,6M-1Y,atm,64.0404078615544,65.43587996332377,Risk-off,Base,-1.3954721017693714
+PF3_Convexity_Protection,EUR,PF3_Convexity_Protection__swaps-4,Basis Swap,BasisSwap,EUR_RATE_CURVE,EUR_RATE_CURVE,5Y-10Y,NA,1.4551915228366852e-09,3.4924596548080444e-10,Risk-off,Base,1.1059455573558807e-09
+PF4_Balanced_Multi_Product,EUR,PF4_Balanced_Multi_Product__swaps-5,Interest Rate Swap,InterestRateSwap,EUR_RATE_CURVE,EUR_RATE_CURVE,10Y+,NA,1186351.379246511,1997540.4968210577,Rates +100bps,Base,-811189.1175745467
+PF2_Equity_Yield,EUR,PF2_Equity_Yield__swaps-2,Interest Rate Swap,InterestRateSwap,EUR_RATE_CURVE,EUR_RATE_CURVE,1Y-2Y,NA,93693.616500918,121988.21313808925,Rates +100bps,Base,-28294.596637171257
+PF3_Convexity_Protection,EUR,PF3_Convexity_Protection__swaps-3,Interest Rate Swap,InterestRateSwap,EUR_RATE_CURVE,EUR_RATE_CURVE,1Y-2Y,NA,40760.71046901116,50307.37643349367,Rates +100bps,Base,-9546.665964482512
+PF1_Defensive_Income,EUR,PF1_Defensive_Income__swaps-1,Interest Rate Swap,InterestRateSwap,EUR_RATE_CURVE,EUR_RATE_CURVE,6M-1Y,NA,3652.9231124686776,12008.897854856354,Rates +100bps,Base,-8355.974742387676
+PF4_Balanced_Multi_Product,USD,PF4_Balanced_Multi_Product__options-4,Butterfly,Butterfly,AAPL,AAPL,0-6M,low,2045548.8006486492,2051422.698009166,Rates +100bps,Base,-5873.897360516712
+PF1_Defensive_Income,USD,PF1_Defensive_Income__options-2,Call Spread,CallSpread,AAPL,AAPL,0-6M,atm,736876.5746202348,732425.5991022432,Rates +100bps,Base,4450.975517991581
+PF3_Convexity_Protection,USD,PF3_Convexity_Protection__options-5,Call,BarrierOption,AAPL,AAPL,0-6M,atm,43238.796102927634,43095.960164989505,Rates +100bps,Base,142.83593793812906
+PF2_Equity_Yield,USD,PF2_Equity_Yield__1,Autocall,AutocallProduct,AAPL,AAPL,5Y-10Y,NA,78.09295231395569,86.1766607529178,Rates +100bps,Base,-8.083708438962105
+PF4_Balanced_Multi_Product,USD,PF4_Balanced_Multi_Product__1,Autocall,AutocallProduct,AAPL,AAPL,5Y-10Y,NA,78.09295231395569,86.1766607529178,Rates +100bps,Base,-8.083708438962105
+PF4_Balanced_Multi_Product,USD,PF4_Balanced_Multi_Product__structured_notes-2,Reverse Convertible,ReverseConvertible,AAPL,AAPL,1Y-2Y,atm,46.46839401940041,47.00002645133897,Rates +100bps,Base,-0.5316324319385615
+PF2_Equity_Yield,USD,PF2_Equity_Yield__structured_notes-3,Capped Capital Protected Note,CappedCapitalProtectedNote,AAPL,AAPL,6M-1Y,atm,110.15589891879127,110.58156781608166,Rates +100bps,Base,-0.42566889729039303
+PF1_Defensive_Income,USD,PF1_Defensive_Income__structured_notes-4,Reverse Convertible,ReverseConvertible,AAPL,AAPL,6M-1Y,atm,65.12372157119236,65.43587996332377,Rates +100bps,Base,-0.3121583921314084
+PF3_Convexity_Protection,EUR,PF3_Convexity_Protection__swaps-4,Basis Swap,BasisSwap,EUR_RATE_CURVE,EUR_RATE_CURVE,5Y-10Y,NA,0.0,3.4924596548080444e-10,Rates +100bps,Base,-3.4924596548080444e-10
+PF4_Balanced_Multi_Product,USD,PF4_Balanced_Multi_Product__options-4,Butterfly,Butterfly,AAPL,AAPL,0-6M,atm,1880015.9186029385,0.0,Equity -10%,Base,1880015.9186029385
+PF1_Defensive_Income,USD,PF1_Defensive_Income__options-2,Call Spread,CallSpread,AAPL,AAPL,0-6M,high,216589.05714614363,0.0,Equity -10%,Base,216589.05714614363
+PF3_Convexity_Protection,USD,PF3_Convexity_Protection__options-5,Call,BarrierOption,AAPL,AAPL,0-6M,high,48903.27572286262,0.0,Equity -10%,Base,48903.27572286262
+PF2_Equity_Yield,USD,PF2_Equity_Yield__1,Autocall,AutocallProduct,AAPL,AAPL,5Y-10Y,NA,85.97310615225759,86.1766607529178,Equity -10%,Base,-0.2035546006602118
+PF4_Balanced_Multi_Product,USD,PF4_Balanced_Multi_Product__1,Autocall,AutocallProduct,AAPL,AAPL,5Y-10Y,NA,85.97310615225759,86.1766607529178,Equity -10%,Base,-0.2035546006602118
+PF2_Equity_Yield,USD,PF2_Equity_Yield__structured_notes-3,Capped Capital Protected Note,CappedCapitalProtectedNote,AAPL,AAPL,6M-1Y,atm,110.58156781608167,110.58156781608166,Equity -10%,Base,1.4210854715202004e-14
+PF1_Defensive_Income,USD,PF1_Defensive_Income__structured_notes-4,Reverse Convertible,ReverseConvertible,AAPL,AAPL,6M-1Y,atm,65.43587996332377,65.43587996332377,Equity -10%,Base,0.0
+PF4_Balanced_Multi_Product,USD,PF4_Balanced_Multi_Product__structured_notes-2,Reverse Convertible,ReverseConvertible,AAPL,AAPL,1Y-2Y,atm,47.00002645133897,47.00002645133897,Equity -10%,Base,0.0
+PF1_Defensive_Income,EUR,PF1_Defensive_Income__swaps-1,Interest Rate Swap,InterestRateSwap,EUR_RATE_CURVE,EUR_RATE_CURVE,6M-1Y,NA,12008.897854856354,12008.897854856354,Equity -10%,Base,0.0
+PF2_Equity_Yield,EUR,PF2_Equity_Yield__swaps-2,Interest Rate Swap,InterestRateSwap,EUR_RATE_CURVE,EUR_RATE_CURVE,1Y-2Y,NA,121988.21313808925,121988.21313808925,Equity -10%,Base,0.0
+PF3_Convexity_Protection,EUR,PF3_Convexity_Protection__swaps-3,Interest Rate Swap,InterestRateSwap,EUR_RATE_CURVE,EUR_RATE_CURVE,1Y-2Y,NA,50307.37643349367,50307.37643349367,Equity -10%,Base,0.0
+PF3_Convexity_Protection,EUR,PF3_Convexity_Protection__swaps-4,Basis Swap,BasisSwap,EUR_RATE_CURVE,EUR_RATE_CURVE,5Y-10Y,NA,3.4924596548080444e-10,3.4924596548080444e-10,Equity -10%,Base,0.0
+PF4_Balanced_Multi_Product,EUR,PF4_Balanced_Multi_Product__swaps-5,Interest Rate Swap,InterestRateSwap,EUR_RATE_CURVE,EUR_RATE_CURVE,10Y+,NA,1997540.4968210577,1997540.4968210577,Equity -10%,Base,0.0
+PF1_Defensive_Income,USD,PF1_Defensive_Income__options-2,Call Spread,CallSpread,AAPL,AAPL,0-6M,low,1257126.844736158,0.0,Equity +10%,Base,1257126.844736158
+PF4_Balanced_Multi_Product,USD,PF4_Balanced_Multi_Product__options-4,Butterfly,Butterfly,AAPL,AAPL,0-6M,low,2008044.7331267744,2051422.698009166,Equity +10%,Base,-43377.964882391505
+PF3_Convexity_Protection,USD,PF3_Convexity_Protection__options-5,Call,BarrierOption,AAPL,AAPL,0-6M,low,10517.69547464822,0.0,Equity +10%,Base,10517.69547464822
+PF2_Equity_Yield,USD,PF2_Equity_Yield__1,Autocall,AutocallProduct,AAPL,AAPL,5Y-10Y,NA,86.2226435948414,86.1766607529178,Equity +10%,Base,0.045982841923603246
+PF4_Balanced_Multi_Product,USD,PF4_Balanced_Multi_Product__1,Autocall,AutocallProduct,AAPL,AAPL,5Y-10Y,NA,86.2226435948414,86.1766607529178,Equity +10%,Base,0.045982841923603246
+PF1_Defensive_Income,USD,PF1_Defensive_Income__structured_notes-4,Reverse Convertible,ReverseConvertible,AAPL,AAPL,6M-1Y,atm,65.43587996332376,65.43587996332377,Equity +10%,Base,-1.4210854715202004e-14
+PF2_Equity_Yield,USD,PF2_Equity_Yield__structured_notes-3,Capped Capital Protected Note,CappedCapitalProtectedNote,AAPL,AAPL,6M-1Y,atm,110.58156781608166,110.58156781608166,Equity +10%,Base,0.0
+PF4_Balanced_Multi_Product,USD,PF4_Balanced_Multi_Product__structured_notes-2,Reverse Convertible,ReverseConvertible,AAPL,AAPL,1Y-2Y,atm,47.00002645133897,47.00002645133897,Equity +10%,Base,0.0
+PF1_Defensive_Income,EUR,PF1_Defensive_Income__swaps-1,Interest Rate Swap,InterestRateSwap,EUR_RATE_CURVE,EUR_RATE_CURVE,6M-1Y,NA,12008.897854856354,12008.897854856354,Equity +10%,Base,0.0
+PF2_Equity_Yield,EUR,PF2_Equity_Yield__swaps-2,Interest Rate Swap,InterestRateSwap,EUR_RATE_CURVE,EUR_RATE_CURVE,1Y-2Y,NA,121988.21313808925,121988.21313808925,Equity +10%,Base,0.0
+PF3_Convexity_Protection,EUR,PF3_Convexity_Protection__swaps-3,Interest Rate Swap,InterestRateSwap,EUR_RATE_CURVE,EUR_RATE_CURVE,1Y-2Y,NA,50307.37643349367,50307.37643349367,Equity +10%,Base,0.0
+PF3_Convexity_Protection,EUR,PF3_Convexity_Protection__swaps-4,Basis Swap,BasisSwap,EUR_RATE_CURVE,EUR_RATE_CURVE,5Y-10Y,NA,3.4924596548080444e-10,3.4924596548080444e-10,Equity +10%,Base,0.0
+PF4_Balanced_Multi_Product,EUR,PF4_Balanced_Multi_Product__swaps-5,Interest Rate Swap,InterestRateSwap,EUR_RATE_CURVE,EUR_RATE_CURVE,10Y+,NA,1997540.4968210577,1997540.4968210577,Equity +10%,Base,0.0
+PF2_Equity_Yield,USD,PF2_Equity_Yield__1,Autocall,AutocallProduct,AAPL,AAPL,5Y-10Y,NA,86.1766607529178,86.1766607529178,Base,Base,0.0
+PF4_Balanced_Multi_Product,USD,PF4_Balanced_Multi_Product__1,Autocall,AutocallProduct,AAPL,AAPL,5Y-10Y,NA,86.1766607529178,86.1766607529178,Base,Base,0.0
+PF1_Defensive_Income,USD,PF1_Defensive_Income__options-2,Call Spread,CallSpread,AAPL,AAPL,0-6M,atm,732425.5991022432,732425.5991022432,Base,Base,0.0
+PF3_Convexity_Protection,USD,PF3_Convexity_Protection__options-5,Call,BarrierOption,AAPL,AAPL,0-6M,atm,43095.960164989505,43095.960164989505,Base,Base,0.0
+PF4_Balanced_Multi_Product,USD,PF4_Balanced_Multi_Product__options-4,Butterfly,Butterfly,AAPL,AAPL,0-6M,low,2051422.698009166,2051422.698009166,Base,Base,0.0
+PF1_Defensive_Income,USD,PF1_Defensive_Income__structured_notes-4,Reverse Convertible,ReverseConvertible,AAPL,AAPL,6M-1Y,atm,65.43587996332377,65.43587996332377,Base,Base,0.0
+PF2_Equity_Yield,USD,PF2_Equity_Yield__structured_notes-3,Capped Capital Protected Note,CappedCapitalProtectedNote,AAPL,AAPL,6M-1Y,atm,110.58156781608166,110.58156781608166,Base,Base,0.0
+PF4_Balanced_Multi_Product,USD,PF4_Balanced_Multi_Product__structured_notes-2,Reverse Convertible,ReverseConvertible,AAPL,AAPL,1Y-2Y,atm,47.00002645133897,47.00002645133897,Base,Base,0.0
+PF1_Defensive_Income,EUR,PF1_Defensive_Income__swaps-1,Interest Rate Swap,InterestRateSwap,EUR_RATE_CURVE,EUR_RATE_CURVE,6M-1Y,NA,12008.897854856354,12008.897854856354,Base,Base,0.0
+PF2_Equity_Yield,EUR,PF2_Equity_Yield__swaps-2,Interest Rate Swap,InterestRateSwap,EUR_RATE_CURVE,EUR_RATE_CURVE,1Y-2Y,NA,121988.21313808925,121988.21313808925,Base,Base,0.0
+PF3_Convexity_Protection,EUR,PF3_Convexity_Protection__swaps-3,Interest Rate Swap,InterestRateSwap,EUR_RATE_CURVE,EUR_RATE_CURVE,1Y-2Y,NA,50307.37643349367,50307.37643349367,Base,Base,0.0
+PF3_Convexity_Protection,EUR,PF3_Convexity_Protection__swaps-4,Basis Swap,BasisSwap,EUR_RATE_CURVE,EUR_RATE_CURVE,5Y-10Y,NA,3.4924596548080444e-10,3.4924596548080444e-10,Base,Base,0.0
+PF4_Balanced_Multi_Product,EUR,PF4_Balanced_Multi_Product__swaps-5,Interest Rate Swap,InterestRateSwap,EUR_RATE_CURVE,EUR_RATE_CURVE,10Y+,NA,1997540.4968210577,1997540.4968210577,Base,Base,0.0

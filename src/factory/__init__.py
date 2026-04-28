@@ -20,12 +20,10 @@ from src.factory.builders import (
 )
 from src.factory.pricing_router import PricingRouter
 from src.factory.registry import ProductFactoryRegistry
-from src.factory.structured_note_factory import StructuredNoteFactory
 
 __all__ = [
     "ProductFactoryRegistry",
     "PricingRouter",
-    "StructuredNoteFactory",
     "build_autocall",
     "build_autocalls_from_frame",
     "build_barrier_option",

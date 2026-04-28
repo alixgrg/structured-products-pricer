@@ -1,4 +1,15 @@
-"""Central project configuration and canonical paths."""
+"""Central project configuration and canonical paths.
+
+The project now assumes that the three market/input files used by the
+application live inside ``data/raw`` of the project repository:
+
+- ``data/raw/rate_curves.parquet``
+- ``data/raw/options.csv``
+- ``data/raw/inventory.xlsx``
+
+Environment variables can still override those defaults when needed, but the
+standard path for the notebook and Streamlit application is now ``data/raw``.
+"""
 
 from __future__ import annotations
 
@@ -9,7 +20,15 @@ from pathlib import Path
 
 @dataclass(frozen=True, slots=True)
 class ProjectConfig:
-    """Resolve canonical project paths and default external datasets."""
+    """Resolve canonical project paths and default external datasets.
+
+    Design choice
+    -------------
+    ``*_source`` points to the effective source file used by the pipeline.
+    By default, those files are the canonical raw files inside ``data/raw``.
+    This avoids relying on files stored outside the project directory and makes
+    the notebook, tests and Streamlit dashboard reproducible from the repository.
+    """
 
     project_root: Path
     data_dir: Path
@@ -25,15 +44,30 @@ class ProjectConfig:
 
     @classmethod
     def default(cls, project_root: Path | None = None) -> "ProjectConfig":
+        """Return the default project configuration.
+
+        Parameters
+        ----------
+        project_root:
+            Root of the repository. If omitted, it is inferred from this file.
+
+        Notes
+        -----
+        The default source files are now the canonical files in ``data/raw``.
+        External overrides remain possible with:
+
+        - ``STRUCT_PRICER_RATE_CURVES_SOURCE``
+        - ``STRUCT_PRICER_OPTIONS_SOURCE``
+        - ``STRUCT_PRICER_INVENTORY_SOURCE``
+        """
         root = (project_root or Path(__file__).resolve().parents[1]).resolve()
-        project_dir = root.parent
-        course_dir = project_dir.parent
         data_dir = root / "data"
+        raw_dir = data_dir / "raw"
 
         return cls(
             project_root=root,
             data_dir=data_dir,
-            raw_dir=data_dir / "raw",
+            raw_dir=raw_dir,
             interim_dir=data_dir / "interim",
             processed_dir=data_dir / "processed",
             notebooks_dir=root / "notebooks",
@@ -42,19 +76,19 @@ class ProjectConfig:
             rate_curves_source=Path(
                 os.getenv(
                     "STRUCT_PRICER_RATE_CURVES_SOURCE",
-                    str(course_dir / "1.rate_curves.parquet"),
+                    str(raw_dir / "rate_curves.parquet"),
                 )
             ),
             options_source=Path(
                 os.getenv(
                     "STRUCT_PRICER_OPTIONS_SOURCE",
-                    str(course_dir / "2.options.csv"),
+                    str(raw_dir / "options.csv"),
                 )
             ),
             inventory_source=Path(
                 os.getenv(
                     "STRUCT_PRICER_INVENTORY_SOURCE",
-                    str(project_dir / "Inventaire.xlsx"),
+                    str(raw_dir / "inventory.xlsx"),
                 )
             ),
         )
@@ -99,10 +133,34 @@ class ProjectConfig:
     def processed_inventory_summary_path(self) -> Path:
         return self.processed_dir / "inventory_dataset_summary.csv"
 
+    @property
+    def dashboard_exports_dir(self) -> Path:
+        return self.reports_dir / "dashboard_exports"
+
     def interim_inventory_path(self, sheet_name: str) -> Path:
         from src.convention import to_snake_case
 
         return self.interim_dir / f"inventory_{to_snake_case(sheet_name)}.csv"
+
+    def raw_inputs(self) -> dict[str, Path]:
+        """Return the canonical raw input files expected by the project."""
+        return {
+            "rate_curves": self.rate_curves_source,
+            "options": self.options_source,
+            "inventory": self.inventory_source,
+        }
+
+    def raw_input_status(self) -> dict[str, bool]:
+        """Return whether each required raw input file is available."""
+        return {name: path.exists() for name, path in self.raw_inputs().items()}
+
+    def require_raw_inputs(self) -> None:
+        """Raise a clear error if one of the raw input files is missing."""
+        missing = [str(path) for name, path in self.raw_inputs().items() if not path.exists()]
+        if missing:
+            raise FileNotFoundError(
+                "Missing required raw input file(s): " + ", ".join(missing)
+            )
 
 
 __all__ = ["ProjectConfig"]

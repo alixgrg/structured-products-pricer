@@ -1,141 +1,89 @@
 # Structured Products Pricer
 
-## Objective
+## Objectif
 
-This project aims to build a scalable Python application for pricing mono-underlying structured products.
+Ce dépôt fournit une application Python modulaire pour le pricing de produits structurés mono-underlying, la calibration de surfaces de volatilité et de courbes de taux, la gestion d'inventaire et l'agrégation de risque.
 
-The application supports:
-- market data loading,
-- rate curve calibration,
-- implied volatility calibration,
-- pricing of financial products,
-- portfolio inventory management,
-- risk aggregation,
-- dashboard configuration scaffolding.
+## Résumé de l'architecture
 
-## Products
+- **src/** : code applicatif principal (modules de calibration, marché, produits, portefeuille, risque, utilitaires).
+- **data/** : jeux de données organisés par étapes (raw, interim, processed).
+- **notebooks/** : notebooks de démonstration et validation end-to-end.
+- **scripts/** : utilitaires pour construire/transformer les jeux de données.
+- **tests/** : suite pytest couvrant pricing, calibration, loaders et intégration.
+- **legacy/** : anciennes étapes et scripts conservés pour traçabilité.
 
-Initial scope:
-- Zero-Coupon Bond
-- European Call / Put
-- Call Spread
-- Capital Protected Note
-- Capped Capital Protected Note
-- Reverse Convertible
+L'application suit une architecture modulaire claire :
 
-Optional extensions:
-- Barrier Option
-- Bonus Certificate
-- Simplified Autocall
+- Market layer: ingestion et normalisation des données de marché.
+- Calibration layer: bootstrap des courbes, calibration d'IV (SVI/SSVI).
+- Models & Pricing: pricers pour produits vanilles et structurés.
+- Factory / Router: sélection du pricer adapté par ligne produit.
+- Portfolio & Risk: agrégation, calculs de grecs et stress tests.
+- Dashboard: exports et tables prêtes pour visualisation.
 
-## Models
+## Structure du projet (sélection clé)
 
-Initial scope:
-- Yield curve interpolation
-- Nelson-Siegel curve fitting
-- Black-Scholes pricing
-- Implied volatility calibration
-- SVI benchmark surface
-- SSVI volatility surface
-
-Optional extensions:
-- Monte Carlo GBM
-- Static replication model
-
-## Project structure
-
-```text
-src/
-|- calibration/
-|- conventions/
-|- dashboard/
-|- factory/
-|- market/
-|- models/
-|- portfolio/
-|- rates/
-|- products/
-|- risk/
-|- config.py
-`- convention.py
-```
-
-## Naming conventions
-
-- Python packages, modules and functions use `snake_case`.
-- Classes use `PascalCase`.
-- All normalized tabular columns use `snake_case`.
-- Dates are stored as timezone-naive pandas timestamps normalized at day granularity.
-- Tenors such as `1M`, `6M`, `5Y` are kept as labels and enriched with a year-fraction column when relevant.
-- Rate datasets expose both `rate_percent` and `rate_decimal`.
+- [environment.yml](environment.yml) — environnement conda recommandé.
+- [src/config.py](src/config.py) — configuration applicative centrale.
+- [src/convention.py](src/convention.py) — conventions de date/tenor.
+- [src/io_utils.py](src/io_utils.py) — helpers lecture/écriture.
+- [src/calibration/](src/calibration) — calibration, SVI et vérifications.
+- [src/market/](src/market) — loaders et normalisation des données de marché.
+- [src/products/](src/products) — implémentations des produits supportés.
+- [src/portfolio/](src/portfolio) — ingestion d'inventaire et moteur de pricing de portefeuille.
+- [src/risk/](src/risk) — agrégateurs et routines de stress/test.
+- [notebooks/](notebooks) — notebooks de validation et démonstration.
+- [data/](data) — raw, interim et processed (pipeline de données).
+- [tests/](tests) — tests automatisés pytest.
 
 ## Data flow
 
-The repository follows a four-stage flow:
-
-```text
 external sources -> data/raw -> data/interim -> data/processed
+
+Les loaders privilégient les copies locales sous `data/raw/` puis retombent sur les chemins externes pour assurer reproductibilité des notebooks.
+
+## Commandes rapides
+
+- Créer l'environnement conda :
+
+```bash
+conda env create -f environment.yml
+conda activate structured-products-pricer
 ```
 
-- `external sources`: original course/project files kept outside the repo.
-- `data/raw`: untouched copies staged inside the repo.
-- `data/interim`: normalized flat files used by notebooks and pricing modules.
-- `data/processed`: compact reporting tables ready for portfolio aggregation and dashboards.
+- (optionnel) ou venv :
 
-## Current loaders
+```bash
+python -m venv .venv
+source .venv/Scripts/activate
+pip install -r requirements.txt
+```
 
-- `src.market.loaders.load_rate_curves`: reads and normalizes `data/raw/rate_curves.parquet`.
-- `src.market.loaders.load_option_quotes`: reads and normalizes `data/raw/options.csv` with the `;` separator.
-- `src.portfolio.inventory_loader.load_inventory_workbook`: reads and normalizes all sheets from `data/raw/inventory.xlsx`.
+- Lancer la suite de tests :
 
-By default, loaders first use the self-contained copies in `data/raw/` when
-present, then fall back to the original course/project paths. This keeps the
-notebooks reproducible without downloading external market data.
+```bash
+pytest -q
+```
 
-## Market Foundations Validation
+- Exécuter le notebook de validation complet : ouvrir [notebooks/00_application_complete_demo_validation_v4.ipynb](notebooks/00_application_complete_demo_validation_v4.ipynb).
 
-The stabilized market-foundations layer is checked by
-`notebooks/00_QA_clean_structured_products_pricer.ipynb` and exports QA tables
-to `reports/qa/`.
+## Bonnes pratiques
 
-Stable QA exports kept under version control:
-- `qa_status_summary.csv`;
-- `qa_repricing_summary.csv`;
-- `qa_vol_filter_report.csv`;
-- `qa_vol_surface_diagnostics.csv`;
-- `qa_bootstrap_points.csv`;
-- `qa_bootstrap_instrument_checks.csv`;
-- `qa_portfolio_by_product.csv`;
-- `qa_portfolio_by_portfolio.csv`.
+- Les noms de modules/fonctions utilisent `snake_case`, les classes `PascalCase`.
+- Les dates sont stockées en pandas Timestamp timezone-naive, normalisées au jour.
+- Les colonnes tabulaires normalisées utilisent `snake_case`.
 
-Validated with the available course data:
-- rate-curve loader, tenor normalization, zero-rate interpolation and
-  positive discount factors on the historical curve file;
-- deposit/FRA/swap bootstrapping, day-count/business-day handling and
-  zero-coupon repricing on a controlled synthetic quote set;
-- option quote loader, market-price construction, implied-volatility inversion
-  from option prices and one-underlying volatility-surface calibration;
-- SSVI arbitrage diagnostics, vanilla repricing error and portfolio ingestion
-  / aggregation for currently supported product rows.
+## Fichiers utiles à consulter
 
-Known validation limits:
-- the course rate file is a historical curve panel, not a raw
-  deposit/FRA/swap instrument set. Bootstrapping is therefore validated on
-  synthetic quotes, while the course file validates the historical curve loader
-  and ZC consistency;
-- the option panel is short-dated and noisy, with missing implied volatility.
-  IVs are inferred from bid/mid/ask prices after liquidity and moneyness
-  filters. The notebook selects the most stable single underlying for SSVI
-  rather than forcing all underlyings into one incoherent surface;
-- raw SVI is kept as a benchmark and may raise calendar-arbitrage warnings on
-  noisy market data. SSVI is the preferred surface when butterfly and calendar
-  checks pass;
-- vanilla repricing is a practical train/test split inside the available panel,
-  not a full multi-date out-of-sample market backtest;
-- swaps and autocall schedules are loaded and flagged in the portfolio QA, but
-  their full event-driven pricing is outside the market-foundations milestone.
+- Loader des courbes : [src/market/loaders.py](src/market) (voir `load_rate_curves`).
+- Calibration IV / SVI : [src/calibration/](src/calibration).
+- Moteur de pricing portefeuille : [src/portfolio/](src/portfolio).
 
-## Notebooks
+## Étapes suivantes recommandées
 
-- `notebooks/00_QA_clean_structured_products_pricer.ipynb`: validation notebook to run before continuing development.
-- `notebooks/99_benchmark_pricer_v2_appendix.ipynb`: cleaned benchmark appendix kept for traceability, not for reference QA exports.
+- Vérifier les notebooks dans `notebooks/` pour une exécution end-to-end.
+- Lancer `pytest` et corriger les éventuels échecs locaux.
+
+---
+

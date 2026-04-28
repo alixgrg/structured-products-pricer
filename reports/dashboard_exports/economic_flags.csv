@@ -1,0 +1,10 @@
+flag,product_id,product_class,value,interpretation
+vega négatif,PF4_Balanced_Multi_Product__options-4,Butterfly,-2378175.6342798807,Peut être cohérent pour butterfly/barrière ou position optionnelle avec options vendues.
+vega négatif,PF3_Convexity_Protection__options-5,BarrierOption,-339329.96385781834,Peut être cohérent pour butterfly/barrière ou position optionnelle avec options vendues.
+vega négatif,PF1_Defensive_Income__options-2,CallSpread,-3689.2040207567625,Peut être cohérent pour butterfly/barrière ou position optionnelle avec options vendues.
+vega négatif,PF4_Balanced_Multi_Product__1,AutocallProduct,-74.82683762909772,Peut être cohérent pour butterfly/barrière ou position optionnelle avec options vendues.
+vega négatif,PF2_Equity_Yield__1,AutocallProduct,-74.82683762909772,Peut être cohérent pour butterfly/barrière ou position optionnelle avec options vendues.
+portefeuille multi-devise,PF1_Defensive_Income,portfolio,2.0,Pas de total global sans conversion FX ; utiliser risk_currency dans les agrégations.
+portefeuille multi-devise,PF2_Equity_Yield,portfolio,2.0,Pas de total global sans conversion FX ; utiliser risk_currency dans les agrégations.
+portefeuille multi-devise,PF3_Convexity_Protection,portfolio,2.0,Pas de total global sans conversion FX ; utiliser risk_currency dans les agrégations.
+portefeuille multi-devise,PF4_Balanced_Multi_Product,portfolio,2.0,Pas de total global sans conversion FX ; utiliser risk_currency dans les agrégations.

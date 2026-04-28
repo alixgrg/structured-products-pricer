@@ -3,7 +3,6 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from src.factory.structured_note_factory import StructuredNoteFactory
 from src.market.market_data import MarketData
 from src.models.black_scholes import BlackScholesModel
 from src.models.discounting_model import DiscountingModel
@@ -11,6 +10,7 @@ from src.products.structured_notes import (
     CappedCapitalProtectedNote,
     CapitalProtectedNote,
     ReverseConvertible,
+    build_structured_note_from_inventory_row,
 )
 
 
@@ -83,9 +83,7 @@ def test_structured_note_price_equals_sum_of_brick_prices() -> None:
     assert direct_price == pytest.approx(decomposition_price, rel=1e-12)
 
 
-def test_structured_note_factory_maps_inventory_rows() -> None:
-    factory = StructuredNoteFactory.with_defaults()
-
+def test_structured_note_builder_maps_inventory_rows() -> None:
     inventory = pd.DataFrame(
         [
             {
@@ -113,7 +111,10 @@ def test_structured_note_factory_maps_inventory_rows() -> None:
         ]
     )
 
-    products = factory.build_many(inventory, spot_reference=100.0)
+    products = [
+        build_structured_note_from_inventory_row(row, spot_reference=100.0)
+        for _, row in inventory.iterrows()
+    ]
 
     assert isinstance(products[0], CapitalProtectedNote)
     assert isinstance(products[1], CappedCapitalProtectedNote)

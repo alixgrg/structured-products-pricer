@@ -1,10 +1,10 @@
 """Portfolio package exports."""
 
-from src.portfolio.book import (
-    PortfolioMarketContext,
-    PortfolioSnapshot,
-    PortfolioValuationEngine,
-    PortfolioValuationResult,
+from src.portfolio.demo_portfolios import (
+    DEFAULT_PORTFOLIO_TEMPLATES,
+    PortfolioLegRule,
+    PortfolioTemplate,
+    create_demo_mixed_portfolios,
 )
 from src.portfolio.inventory_loader import (
     build_inventory_data_assets,
@@ -23,15 +23,15 @@ from src.portfolio.pricing_engine import (
 )
 
 __all__ = [
-    "PortfolioMarketContext",
+    "DEFAULT_PORTFOLIO_TEMPLATES",
+    "PortfolioLegRule",
     "PortfolioPricingConfig",
     "PortfolioPricingEngine",
-    "PortfolioSnapshot",
-    "PortfolioValuationEngine",
-    "PortfolioValuationResult",
+    "PortfolioTemplate",
     "build_inventory_data_assets",
     "build_pricing_inventory",
     "combine_inventory_sheets",
+    "create_demo_mixed_portfolios",
     "inventory_dataset_summary",
     "load_inventory_workbook",
     "maturity_bucket",
