@@ -292,28 +292,51 @@ with tab_overview:
 
     st.divider()
 
-    col_a, col_b = st.columns(2)
-    with col_a:
-        st.subheader("Prix par devise de risque")
-        if "risk_currency" in filtered_lines.columns:
-            by_ccy = filtered_lines.groupby("risk_currency", dropna=False)["price"].sum().reset_index()
-            show_dataframe(by_ccy, height=180)
-            bar_chart(by_ccy, "risk_currency", "price")
-        else:
-            st.info("Colonne risk_currency absente.")
+    by_ccy = pd.DataFrame()
+    by_class = pd.DataFrame()
 
-    with col_b:
-        st.subheader("Répartition par classe produit")
-        if "product_class" in filtered_lines.columns:
-            by_class = (
-                filtered_lines.groupby("product_class", dropna=False)
-                .agg(price=("price", "sum"), line_count=("product_class", "size"))
-                .reset_index()
-                .sort_values("price", key=lambda s: s.abs(), ascending=False)
-            )
-            show_dataframe(by_class, height=260)
+    if "risk_currency" in filtered_lines.columns and "price" in filtered_lines.columns:
+        by_ccy = (
+            filtered_lines.groupby("risk_currency", dropna=False)["price"]
+            .sum()
+            .reset_index()
+            .sort_values("price", key=lambda s: s.abs(), ascending=False)
+        )
+
+    if "product_class" in filtered_lines.columns and "price" in filtered_lines.columns:
+        by_class = (
+            filtered_lines.groupby("product_class", dropna=False)
+            .agg(price=("price", "sum"), line_count=("product_class", "size"))
+            .reset_index()
+            .sort_values("price", key=lambda s: s.abs(), ascending=False)
+        )
+
+    # Important: on affiche les graphiques dans une première ligne et les tableaux
+    # dans un expander séparé. Cela évite l'effet de superposition / tassement visuel
+    # observé quand st.dataframe et st.bar_chart sont empilés dans la même colonne.
+    chart_left, chart_right = st.columns(2)
+    with chart_left:
+        st.subheader("Prix par devise de risque")
+        if not by_ccy.empty:
+            st.bar_chart(by_ccy.set_index("risk_currency")["price"], height=320)
         else:
-            st.info("Colonne product_class absente.")
+            st.info("Colonne risk_currency ou price absente.")
+
+    with chart_right:
+        st.subheader("Prix par classe produit")
+        if not by_class.empty:
+            st.bar_chart(by_class.set_index("product_class")["price"], height=320)
+        else:
+            st.info("Colonne product_class ou price absente.")
+
+    with st.expander("Voir les tableaux détaillés de la vue d'ensemble", expanded=False):
+        table_left, table_right = st.columns(2)
+        with table_left:
+            st.caption("Agrégation par devise de risque")
+            show_dataframe(by_ccy, height=220)
+        with table_right:
+            st.caption("Agrégation par classe produit")
+            show_dataframe(by_class, height=300)
 
     st.subheader("Interprétation financière")
     st.markdown(
@@ -322,6 +345,7 @@ with tab_overview:
         - Les produits de taux portent principalement du **rho / DV01**.
         - Les produits optionnels portent du **delta, gamma et vega**.
         - Les produits autocallables et barrières peuvent utiliser des Greeks numériques selon la configuration du notebook.
+        - Un prix élevé doit d'abord être rapproché du nominal ou de la quantité de position avant d'être interprété comme une anomalie de modèle.
         """
     )
 
