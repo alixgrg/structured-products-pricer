@@ -1,5 +1,1 @@
-"""Dashboard package exports."""
-
-from src.dashboard.config import DashboardConfig
-
-__all__ = ["DashboardConfig"]
+"""Streamlit dashboard package for the structured-products pricer."""
