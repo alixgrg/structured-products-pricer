@@ -5,7 +5,7 @@ import pytest
 from src.market.market_data import MarketData
 from src.models.black_scholes import BlackScholesModel
 from src.products.barrier_option import BarrierOption
-from src.products.option_strategy import OptionStrategy
+from src.products.option_strategies import OptionStrategy
 
 
 def test_call_spread_price_equals_sum_of_legs() -> None:

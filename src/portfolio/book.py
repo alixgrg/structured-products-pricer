@@ -12,8 +12,8 @@ from src.factory.structured_note_factory import StructuredNoteFactory
 from src.market.market_data import MarketData
 from src.models.black_scholes import BlackScholesModel
 from src.models.discounting_model import DiscountingModel
-from src.products.option_strategy import OptionStrategy
-from src.products.structured_note import (
+from src.products.option_strategies import OptionStrategy
+from src.products.structured_notes import (
     CappedCapitalProtectedNote,
     CapitalProtectedNote,
     ReverseConvertible,
