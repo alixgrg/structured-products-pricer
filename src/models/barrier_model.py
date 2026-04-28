@@ -13,12 +13,12 @@ the required parity test exact up to floating-point precision.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from itertools import product
-from math import erf, exp, log, pi, sqrt
+from math import exp, log, sqrt
 
 from src.market.market_data import MarketData
 from src.models.base_model import PricingModel
 from src.models.black_scholes import black_scholes_price_and_greeks
+from src.models.black_scholes import normal_cdf
 from src.models.pricing_inputs import require_market_spot, resolve_dividend_yield, resolve_pricing_rate, resolve_pricing_volatility
 from src.products.barrier_option import BarrierOption
 from src.rates.yield_curve import YieldCurve
@@ -34,6 +34,7 @@ class BarrierModel(PricingModel):
     yield_curve: YieldCurve | None = None
 
     def price(self, product, market_data: MarketData | None = None) -> float:
+        """Price a single-barrier option with closed-form formulas."""
         if not isinstance(product, BarrierOption):
             raise TypeError("BarrierModel supports BarrierOption only.")
 
@@ -78,6 +79,7 @@ class BarrierModel(PricingModel):
         return float(vanilla - knock_out)
 
     def risk(self, product, market_data: MarketData | None = None) -> dict[str, float]:
+        """Return price and placeholder Greeks for barrier options."""
         price = self.price(product, market_data)
         # Closed-form barrier Greeks are intentionally deferred. Numerical Greeks
         # in Phase 7 will cover barriers robustly.
@@ -146,31 +148,31 @@ def _knock_out_price(
     y1 = log((barrier * barrier) / (spot * strike)) / sigma_sqrt_t + (1.0 + mu) * sigma_sqrt_t
     y2 = log(barrier / spot) / sigma_sqrt_t + (1.0 + mu) * sigma_sqrt_t
 
-    A = phi * spot * exp((b - rate) * maturity) * _norm_cdf(phi * x1) - phi * strike * exp(-rate * maturity) * _norm_cdf(phi * x1 - phi * sigma_sqrt_t)
-    B = phi * spot * exp((b - rate) * maturity) * _norm_cdf(phi * x2) - phi * strike * exp(-rate * maturity) * _norm_cdf(phi * x2 - phi * sigma_sqrt_t)
+    A = phi * spot * exp((b - rate) * maturity) * normal_cdf(phi * x1) - phi * strike * exp(-rate * maturity) * normal_cdf(phi * x1 - phi * sigma_sqrt_t)
+    B = phi * spot * exp((b - rate) * maturity) * normal_cdf(phi * x2) - phi * strike * exp(-rate * maturity) * normal_cdf(phi * x2 - phi * sigma_sqrt_t)
     C = (
         phi
         * spot
         * exp((b - rate) * maturity)
         * (barrier / spot) ** (2.0 * (mu + 1.0))
-        * _norm_cdf(eta * y1)
+        * normal_cdf(eta * y1)
         - phi
         * strike
         * exp(-rate * maturity)
         * (barrier / spot) ** (2.0 * mu)
-        * _norm_cdf(eta * y1 - eta * sigma_sqrt_t)
+        * normal_cdf(eta * y1 - eta * sigma_sqrt_t)
     )
     D = (
         phi
         * spot
         * exp((b - rate) * maturity)
         * (barrier / spot) ** (2.0 * (mu + 1.0))
-        * _norm_cdf(eta * y2)
+        * normal_cdf(eta * y2)
         - phi
         * strike
         * exp(-rate * maturity)
         * (barrier / spot) ** (2.0 * mu)
-        * _norm_cdf(eta * y2 - eta * sigma_sqrt_t)
+        * normal_cdf(eta * y2 - eta * sigma_sqrt_t)
     )
 
     if option_type == "call" and direction == "down":
@@ -185,14 +187,4 @@ def _knock_out_price(
         raise ValueError("Unsupported option_type/direction combination.")
 
     return float(notional * value)
-
-
-def _norm_cdf(x: float) -> float:
-    return 0.5 * (1.0 + erf(x / sqrt(2.0)))
-
-
-def _norm_pdf(x: float) -> float:
-    return exp(-0.5 * x * x) / sqrt(2.0 * pi)
-
-
 __all__ = ["BarrierModel"]

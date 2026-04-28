@@ -17,6 +17,8 @@ from src.risk.numerical_greeks import NumericalGreeksEngine
 
 @dataclass(slots=True)
 class PortfolioPricingConfig:
+    """Default assumptions used by the portfolio pricing engine."""
+
     default_spot: float = 100.0
     default_rate: float = 0.03
     default_volatility: float = 0.20
@@ -271,6 +273,7 @@ class PortfolioPricingEngine:
         )
     
     def _portfolio(self, row: pd.Series) -> str:
+        """Return the normalized portfolio label for a pricing row."""
         value = row.get("portfolio", "default")
         cleaned = self._clean_label(value)
         return cleaned or "default"
@@ -335,6 +338,7 @@ class PortfolioPricingEngine:
 
     @staticmethod
     def _clean_label(value: Any) -> str:
+        """Normalize a potentially empty text field to a compact label."""
         if value is None:
             return ""
         try:
@@ -350,6 +354,7 @@ class PortfolioPricingEngine:
 
     @classmethod
     def _clean_upper_label(cls, value: Any) -> str:
+        """Normalize and uppercase a text field used as a label."""
         return cls._clean_label(value).upper()
 
     @staticmethod
@@ -416,6 +421,7 @@ class PortfolioPricingEngine:
 
 
 def maturity_bucket(maturity: float) -> str:
+    """Map a maturity in years to a coarse reporting bucket."""
     if not np.isfinite(maturity):
         return "NA"
     if maturity <= 0.5:
@@ -432,6 +438,7 @@ def maturity_bucket(maturity: float) -> str:
 
 
 def strike_bucket(strike: float, spot: float | None) -> str:
+    """Map moneyness to a reporting bucket relative to spot."""
     if not np.isfinite(strike) or spot is None or not np.isfinite(spot) or spot <= 0.0:
         return "NA"
     m = strike / spot

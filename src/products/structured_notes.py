@@ -15,6 +15,8 @@ from src.products.zero_coupon_bond import ZeroCouponBond
 
 @dataclass(slots=True)
 class ReplicationLeg:
+    """Single leg of a static replication decomposition."""
+
     product: object
     quantity: float = 1.0
 

@@ -415,6 +415,8 @@ class YieldCurve:
 
 @dataclass(frozen=True, slots=True)
 class NelsonSiegelParameters:
+    """Parameters of a Nelson-Siegel zero-rate curve."""
+
     beta0: float
     beta1: float
     beta2: float
@@ -422,6 +424,7 @@ class NelsonSiegelParameters:
 
 
 def nelson_siegel_zero_rate(maturity: float | np.ndarray, params: NelsonSiegelParameters) -> float | np.ndarray:
+    """Evaluate the Nelson-Siegel zero rate at one maturity or many maturities."""
     t = np.asarray(maturity, dtype=float)
     if np.any(t < 0.0):
         raise ValueError("maturity must be non-negative.")
@@ -444,6 +447,7 @@ def fit_nelson_siegel(
     *,
     initial_guess: NelsonSiegelParameters | None = None,
 ) -> NelsonSiegelParameters:
+    """Fit Nelson-Siegel parameters to observed zero rates."""
     try:
         from scipy.optimize import minimize
     except ImportError as exc:
@@ -478,17 +482,22 @@ def fit_nelson_siegel(
 
 @dataclass(frozen=True, slots=True)
 class NelsonSiegelCurve:
+    """Convenience wrapper exposing a fitted Nelson-Siegel curve API."""
+
     params: NelsonSiegelParameters
     name: str = "nelson_siegel_curve"
 
     @classmethod
     def fit(cls, maturities: np.ndarray, zero_rates: np.ndarray, *, name: str = "nelson_siegel_curve") -> "NelsonSiegelCurve":
+        """Fit a Nelson-Siegel curve from market zero rates."""
         return cls(params=fit_nelson_siegel(maturities, zero_rates), name=name)
 
     def zero_rate(self, maturity: float | np.ndarray) -> float | np.ndarray:
+        """Return the fitted zero rate at a given maturity."""
         return nelson_siegel_zero_rate(maturity, self.params)
 
     def discount_factor(self, maturity: float | np.ndarray, *, compounding: CompoundingMethod = "continuous") -> float | np.ndarray:
+        """Return the discount factor implied by the fitted curve."""
         t = np.asarray(maturity, dtype=float)
         rates = np.asarray(self.zero_rate(t), dtype=float)
         if compounding == "continuous":
@@ -502,6 +511,7 @@ class NelsonSiegelCurve:
         return values
 
     def forward_rate(self, start: float, end: float, *, compounding: CompoundingMethod = "continuous") -> float:
+        """Return the forward rate implied between two maturities."""
         if end <= start:
             raise ValueError("end must be strictly greater than start.")
         df_start = self.discount_factor(start, compounding=compounding)
@@ -514,6 +524,7 @@ class NelsonSiegelCurve:
         raise ValueError("compounding must be either 'continuous' or 'annual'.")
 
     def zero_coupon_price(self, maturity: float, *, notional: float = 100.0, compounding: CompoundingMethod = "continuous") -> float:
+        """Return the zero-coupon bond price implied by the fitted curve."""
         return float(notional * self.discount_factor(maturity, compounding=compounding))
 
 

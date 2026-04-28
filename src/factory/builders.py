@@ -24,6 +24,7 @@ Builder = Callable[..., object]
 
 
 def build_vanilla_option(row: RowLike, **_: Any) -> VanillaOption:
+    """Build a plain vanilla option from an inventory row."""
     option_type = _option_type(row)
     return VanillaOption(
         product_id=_product_id(row, prefix=f"{option_type.upper()}"),
@@ -38,6 +39,7 @@ def build_vanilla_option(row: RowLike, **_: Any) -> VanillaOption:
 
 
 def build_call_spread(row: RowLike, **_: Any) -> CallSpread:
+    """Build a call spread from an inventory row."""
     k1, k2 = _two_strikes(row)
     return CallSpread(
         product_id=_product_id(row, prefix="CS"),
@@ -51,6 +53,7 @@ def build_call_spread(row: RowLike, **_: Any) -> CallSpread:
 
 
 def build_put_spread(row: RowLike, **_: Any) -> PutSpread:
+    """Build a put spread from an inventory row."""
     k1, k2 = _two_strikes(row)
     return PutSpread(
         product_id=_product_id(row, prefix="PS"),
@@ -64,6 +67,7 @@ def build_put_spread(row: RowLike, **_: Any) -> PutSpread:
 
 
 def build_butterfly(row: RowLike, **_: Any) -> Butterfly:
+    """Build a butterfly strategy from an inventory row."""
     strikes = sorted(
         [
             _float_required(_get(row, "strike_1", default=None), "strike_1"),
@@ -84,6 +88,7 @@ def build_butterfly(row: RowLike, **_: Any) -> Butterfly:
 
 
 def build_straddle(row: RowLike, **_: Any) -> Straddle:
+    """Build a straddle from an inventory row."""
     return Straddle(
         product_id=_product_id(row, prefix="STD"),
         maturity=_maturity(row),
@@ -95,6 +100,7 @@ def build_straddle(row: RowLike, **_: Any) -> Straddle:
 
 
 def build_barrier_option(row: RowLike, **_: Any) -> BarrierOption:
+    """Build a barrier option from an inventory row."""
     product_type = str(_get(row, "product_type", default="")).strip().lower()
     barrier_type_raw = str(_get(row, "barrier_type", default="")).strip().lower()
 
@@ -122,6 +128,7 @@ def build_barrier_option(row: RowLike, **_: Any) -> BarrierOption:
 
 
 def build_zero_coupon_bond(row: RowLike, **_: Any) -> ZeroCouponBond:
+    """Build a zero-coupon bond from an inventory row."""
     return ZeroCouponBond(
         product_id=_product_id(row, prefix="ZCB"),
         notional=_positive_notional(row, default=100.0),
@@ -131,6 +138,7 @@ def build_zero_coupon_bond(row: RowLike, **_: Any) -> ZeroCouponBond:
 
 
 def build_coupon_bond(row: RowLike, **_: Any) -> CouponBond:
+    """Build a fixed-coupon bond from an inventory row."""
     return CouponBond(
         product_id=_product_id(row, prefix="BOND"),
         notional=_positive_notional(row, default=100.0),
@@ -142,6 +150,7 @@ def build_coupon_bond(row: RowLike, **_: Any) -> CouponBond:
 
 
 def build_interest_rate_swap(row: RowLike, **_: Any) -> InterestRateSwap:
+    """Build an interest rate swap from an inventory row."""
     float_index = _get(row, "float_index", "floating_rate_index", "floating_rate_index_1", "taux_variable_1", default="EURIBOR6M")
     return InterestRateSwap(
         product_id=_product_id(row, prefix="IRS"),
@@ -155,6 +164,7 @@ def build_interest_rate_swap(row: RowLike, **_: Any) -> InterestRateSwap:
 
 
 def build_basis_swap(row: RowLike, **_: Any) -> BasisSwap:
+    """Build a basis swap from an inventory row."""
     receive_index = _get(row, "receive_index", "floating_rate_index_1", "taux_variable_1", default=None)
     pay_index = _get(row, "pay_index", "floating_rate_index_2", "taux_variable_2", default=None)
 
@@ -175,6 +185,7 @@ def build_basis_swap(row: RowLike, **_: Any) -> BasisSwap:
 
 
 def build_structured_note(row: RowLike, *, spot_reference: float | None = None, **_: Any):
+    """Build a structured note by delegating to the note factory."""
     spot_ref = _resolve_spot_reference(row, spot_reference)
     valuation_date = _get(row, "valuation_date", "date_valorisation", default=None)
     return build_structured_note_from_inventory_row(
@@ -185,6 +196,7 @@ def build_structured_note(row: RowLike, *, spot_reference: float | None = None, 
 
 
 def build_autocall(row: RowLike, **_: Any) -> AutocallProduct:
+    """Build an autocall product from an inventory row."""
     observation_dates = _list_value(_get(row, "observation_dates", default=None))
 
     if not observation_dates:
@@ -203,7 +215,6 @@ def build_autocall(row: RowLike, **_: Any) -> AutocallProduct:
         else:
             observation_dates = [1.0]
 
-    # Convert calendar dates to year fractions if needed.
     if observation_dates and not all(_is_number_like(x) for x in observation_dates):
         valuation = _get(row, "valuation_date", "date_valorisation", default=None)
         if not _has_value(valuation):
@@ -279,7 +290,6 @@ def build_autocalls_from_frame(frame: pd.DataFrame) -> list[AutocallProduct]:
             pd.Series([first.get("trigger_level", 1.0)] * len(group)),
         ).tolist()
 
-        # If coupons are cumulative in the inventory, annualize the final coupon.
         if "coupon_rate" in group.columns and pd.to_numeric(group["coupon_rate"], errors="coerce").notna().any():
             maturity = max(float(first["time_to_maturity_years"]), 1e-12)
             final_coupon = float(pd.to_numeric(group["coupon_rate"], errors="coerce").dropna().iloc[-1])
@@ -315,12 +325,14 @@ def build_product_from_row(
     registry: ProductFactoryRegistry | None = None,
     spot_reference: float | None = None,
 ) -> object:
+    """Build a product from a normalized inventory row."""
     registry = registry or create_default_product_registry()
     product_key = infer_product_type_key(row)
     return registry.build(product_key, row=row, spot_reference=spot_reference)
 
 
 def infer_product_type_key(row: RowLike) -> str:
+    """Infer the registry key for a normalized inventory row."""
     source_sheet = str(_get(row, "source_sheet", default="")).strip().lower()
     product_type = str(_get(row, "product_type", default="")).strip().lower()
     text = product_type.replace("_", " ").replace("-", " ")
@@ -459,11 +471,6 @@ def _positive_notional(row: RowLike, default: float = 1.0) -> float:
     )
     return abs(_float_required(value, "notional"))
 
-def _notional(row: RowLike, *, default: float) -> float:
-    # Backward-compatible wrapper: this prevents negative notionals from becoming 1e-12.
-    return _positive_notional(row, default=default)
-
-
 
 def _position_sign(row: RowLike) -> float:
     explicit = _get(row, "position_sign", default=None)
@@ -553,16 +560,6 @@ def _list_value(value: Any) -> list[Any]:
     if isinstance(value, str) and "," in value:
         return [item.strip() for item in value.split(",") if item.strip()]
     return [value]
-
-
-def _calendar_autocall_row_to_times(row: RowLike) -> RowLike:
-    data = _as_dict(row)
-    valuation = data.get("valuation_date")
-    obs = data.get("observation_date")
-    if _has_value(valuation) and _has_value(obs):
-        data["observation_dates"] = [(pd.Timestamp(obs) - pd.Timestamp(valuation)).days / 365.25]
-        data["time_to_maturity_years"] = data["observation_dates"][0]
-    return data
 
 
 __all__ = [

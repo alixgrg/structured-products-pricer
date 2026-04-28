@@ -11,7 +11,7 @@ It returns a price and a 95% confidence interval through ``price_with_error``.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from math import exp, sqrt
+from math import sqrt
 from typing import Any
 
 import numpy as np
@@ -27,6 +27,8 @@ from src.rates.yield_curve import YieldCurve
 
 @dataclass(frozen=True, slots=True)
 class MonteCarloResult:
+    """Summary of a Monte Carlo pricing run."""
+
     price: float
     standard_error: float
     confidence_interval_low: float
@@ -35,12 +37,13 @@ class MonteCarloResult:
     confidence_level: float = 0.95
 
     def to_dict(self) -> dict[str, float]:
+        """Return serializable pricing outputs."""
         return {
             "price": self.price,
             "standard_error": self.standard_error,
             "confidence_interval_low": self.confidence_interval_low,
             "confidence_interval_high": self.confidence_interval_high,
-            "n_paths": float(self.n_paths),
+            "n_paths": self.n_paths,
             "confidence_level": self.confidence_level,
         }
 

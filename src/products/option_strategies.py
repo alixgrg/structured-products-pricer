@@ -11,6 +11,8 @@ from src.products.vanilla_option import VanillaOption
 
 @dataclass(slots=True)
 class OptionLeg:
+    """A signed vanilla-option leg used in static replication."""
+
     product: VanillaOption
     quantity: float
 
@@ -63,6 +65,7 @@ class OptionStrategy(Product):
         notional: float = 1.0,
         currency: str = "EUR",
     ) -> "CallSpread":
+        """Convenience constructor for a call spread."""
         return CallSpread(product_id, maturity, strike_low, strike_high, underlying, notional, currency)
 
     @classmethod
@@ -77,6 +80,7 @@ class OptionStrategy(Product):
         notional: float = 1.0,
         currency: str = "EUR",
     ) -> "PutSpread":
+        """Convenience constructor for a put spread."""
         return PutSpread(product_id, maturity, strike_low, strike_high, underlying, notional, currency)
 
     @classmethod
@@ -92,6 +96,7 @@ class OptionStrategy(Product):
         notional: float = 1.0,
         currency: str = "EUR",
     ) -> "Butterfly":
+        """Convenience constructor for a butterfly strategy."""
         return Butterfly(product_id, maturity, strike_low, strike_mid, strike_high, underlying, notional, currency)
 
     @classmethod
@@ -105,6 +110,7 @@ class OptionStrategy(Product):
         notional: float = 1.0,
         currency: str = "EUR",
     ) -> "Straddle":
+        """Convenience constructor for a straddle."""
         return Straddle(product_id, maturity, strike, underlying, notional, currency)
 
 
