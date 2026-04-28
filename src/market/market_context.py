@@ -58,3 +58,9 @@ def build_volatility_by_underlying(
     data = data[data[iv_column] > 0.0]
 
     return data.groupby(underlying_column)[iv_column].median().astype(float).to_dict()
+
+
+__all__ = [
+    "build_spot_by_underlying",
+    "build_volatility_by_underlying",
+]

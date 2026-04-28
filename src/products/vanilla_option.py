@@ -47,3 +47,6 @@ class VanillaOption(Product):
 
     def get_risk_factors(self) -> list[str]:
         return ["spot", "rate", "volatility"]
+
+
+__all__ = ["VanillaOption"]

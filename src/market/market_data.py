@@ -9,3 +9,6 @@ class MarketData:
     rate: float | None = None
     volatility: float | None = None
     dividend_yield: float = 0.0
+
+
+__all__ = ["MarketData"]

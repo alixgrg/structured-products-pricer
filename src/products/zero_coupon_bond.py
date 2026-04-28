@@ -25,3 +25,6 @@ class ZeroCouponBond(Product):
 
     def get_risk_factors(self) -> list[str]:
         return ["rate"]
+
+
+__all__ = ["ZeroCouponBond"]

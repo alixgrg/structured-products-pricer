@@ -18,3 +18,6 @@ class Product(ABC):
     def get_risk_factors(self) -> list[str]:
         """Return the list of risk factors used by the product."""
         raise NotImplementedError
+
+
+__all__ = ["Product"]

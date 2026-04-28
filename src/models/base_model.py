@@ -12,3 +12,6 @@ class PricingModel(ABC):
     def risk(self, product, market_data) -> dict:
         """Return risk metrics for a product."""
         return {}
+
+
+__all__ = ["PricingModel"]

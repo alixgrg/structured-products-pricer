@@ -1,43 +1,47 @@
 """Financial product definitions for the structured-products pricer."""
 
-from src.products.zero_coupon_bond import ZeroCouponBond
-from src.products.vanilla_option import VanillaOption
+from src.products.autocall import AutocallProduct
+from src.products.barrier_option import BarrierOption
+from src.products.base_product import Product
+from src.products.basis_swap import BasisSwap
 from src.products.coupon_bond import CouponBond
-from src.products.swap import InterestRateSwap
 from src.products.option_strategies import (
+    Butterfly,
+    CallSpread,
     OptionLeg,
     OptionStrategy,
-    CallSpread,
     PutSpread,
-    Butterfly,
     Straddle,
 )
-from src.products.barrier_option import BarrierOption
 from src.products.structured_notes import (
-    ReplicationLeg,
     CapitalProtectedNote,
     CappedCapitalProtectedNote,
+    ReplicationLeg,
     ReverseConvertible,
     build_structured_note_from_inventory_row,
 )
-from src.products.autocall import AutocallProduct
+from src.products.swap import InterestRateSwap
+from src.products.vanilla_option import VanillaOption
+from src.products.zero_coupon_bond import ZeroCouponBond
 
 __all__ = [
-    "ZeroCouponBond",
-    "VanillaOption",
+    "AutocallProduct",
+    "BarrierOption",
+    "BasisSwap",
+    "Butterfly",
+    "CallSpread",
+    "CapitalProtectedNote",
+    "CappedCapitalProtectedNote",
     "CouponBond",
     "InterestRateSwap",
     "OptionLeg",
     "OptionStrategy",
-    "CallSpread",
+    "Product",
     "PutSpread",
-    "Butterfly",
-    "Straddle",
-    "BarrierOption",
     "ReplicationLeg",
-    "CapitalProtectedNote",
-    "CappedCapitalProtectedNote",
     "ReverseConvertible",
+    "Straddle",
+    "VanillaOption",
+    "ZeroCouponBond",
     "build_structured_note_from_inventory_row",
-    "AutocallProduct",
 ]

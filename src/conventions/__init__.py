@@ -1,4 +1,4 @@
-""" Conventions package export """
+"""Date convention package public API."""
 
 from src.conventions.business_day import (
     BusinessCalendar,
@@ -7,19 +7,20 @@ from src.conventions.business_day import (
 )
 
 from src.conventions.day_count import (
-    DayCountConvention, 
-    Tenor, 
-    add_tenor, 
+    DayCountConvention,
+    Tenor,
+    TenorUnit,
+    add_tenor,
     year_fraction,
 )
-
 
 __all__ = [
     "BusinessCalendar",
     "BusinessDayConvention",
-    "generate_schedule",
     "DayCountConvention",
     "Tenor",
+    "TenorUnit",
     "add_tenor",
+    "generate_schedule",
     "year_fraction",
 ]
