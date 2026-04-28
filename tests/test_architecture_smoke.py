@@ -3,7 +3,7 @@ from src.config import ProjectConfig
 from src.dashboard.config import DashboardConfig
 from src.factory.registry import ProductFactoryRegistry
 from src.market.market_data import MarketData
-from src.portfolio.book import PortfolioSnapshot
+from src.portfolio.pricing_engine import PortfolioPricingConfig
 from src.risk.report import RiskSnapshot
 
 
@@ -20,7 +20,7 @@ def test_smoke_instantiation_of_foundation_objects() -> None:
     calibration = CalibrationResult(model_name="black_scholes", parameters={"sigma": 0.25})
     dashboard = DashboardConfig()
     risk_snapshot = RiskSnapshot(product_id="CALL-001", price=12.5, metrics={"delta": 0.55})
-    portfolio = PortfolioSnapshot(name="demo", position_count=3)
+    portfolio_config = PortfolioPricingConfig(default_spot=100.0, default_rate=0.03)
 
     registry = ProductFactoryRegistry()
     registry.register("dummy", lambda product_id: {"product_id": product_id})
@@ -29,5 +29,5 @@ def test_smoke_instantiation_of_foundation_objects() -> None:
     assert calibration.parameters["sigma"] == 0.25
     assert dashboard.default_pages[0] == "overview"
     assert risk_snapshot.metrics["delta"] == 0.55
-    assert portfolio.position_count == 3
+    assert portfolio_config.default_spot == 100.0
     assert registry.build("dummy", product_id="P-1") == {"product_id": "P-1"}

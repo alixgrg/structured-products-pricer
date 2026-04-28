@@ -7,7 +7,7 @@ from dataclasses import dataclass
 import pandas as pd
 
 from src.factory.registry import ProductFactoryRegistry
-from src.products.structured_note import (
+from src.products.structured_notes import (
     CapitalProtectedNote,
     CappedCapitalProtectedNote,
     ReverseConvertible,

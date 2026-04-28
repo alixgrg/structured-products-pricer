@@ -23,6 +23,11 @@ from src.products.swap import InterestRateSwap
 from src.products.vanilla_option import VanillaOption
 from src.products.zero_coupon_bond import ZeroCouponBond
 from src.rates.yield_curve import YieldCurve
+from src.models.pricing_inputs import (
+    resolve_dividend_yield,
+    resolve_pricing_rate,
+    resolve_pricing_volatility,
+)
 
 
 class VolatilitySurfaceLike(Protocol):
@@ -135,34 +140,29 @@ class StaticReplicationModel(PricingModel):
         return DiscountingModel(rate=self.rate, yield_curve=self.yield_curve)
 
     def _rate(self, maturity: float, market_data: MarketData | None) -> float:
-        if self.yield_curve is not None:
-            return float(self.yield_curve.zero_rate(maturity))
-        if self.rate is not None:
-            return float(self.rate)
-        if market_data is not None and market_data.rate is not None:
-            return float(market_data.rate)
-        raise ValueError("No rate available. Provide yield_curve, model.rate or market_data.rate.")
+        return resolve_pricing_rate(
+            maturity=maturity,
+            yield_curve=self.yield_curve,
+            model_rate=self.rate,
+            market_data=market_data,
+        )
 
     def _volatility(self, option: VanillaOption, spot: float, market_data: MarketData | None) -> float:
-        if self.vol_surface is not None:
-            log_moneyness = float(np.log(option.strike / spot))
-            vol = float(self.vol_surface.volatility(option.maturity, log_moneyness))
-        elif self.volatility is not None:
-            vol = float(self.volatility)
-        elif market_data is not None and market_data.volatility is not None:
-            vol = float(market_data.volatility)
-        else:
-            raise ValueError("No volatility available. Provide vol_surface, model.volatility or market_data.volatility.")
-        if vol <= 0.0:
-            raise ValueError("volatility must be strictly positive.")
-        return vol
+        log_moneyness = float(np.log(option.strike / spot))
+        return resolve_pricing_volatility(
+            maturity=option.maturity,
+            log_moneyness=log_moneyness,
+            volatility_surface=self.vol_surface,
+            model_volatility=self.volatility,
+            market_data=market_data,
+        )
 
     def _dividend_yield(self, option: VanillaOption, market_data: MarketData | None) -> float:
-        if option.dividend_yield is not None:
-            return float(option.dividend_yield)
-        if market_data is not None:
-            return float(market_data.dividend_yield)
-        return float(self.dividend_yield)
+        return resolve_dividend_yield(
+            product_dividend_yield=option.dividend_yield,
+            model_dividend_yield=self.dividend_yield,
+            market_data=market_data,
+        )
 
 
 __all__ = ["StaticReplicationModel"]

@@ -1,9 +1,4 @@
-"""Route products to their appropriate pricing model.
-
-The router is deliberately thin: it does not price by itself, it selects the
-right model and delegates ``price`` / ``risk``. This makes it the central glue
-between the factory layer and the future portfolio pricing engine.
-"""
+"""Route products to their appropriate pricing model."""
 
 from __future__ import annotations
 
@@ -18,6 +13,7 @@ from src.models.monte_carlo import MonteCarloGBMModel
 from src.models.static_replication import StaticReplicationModel
 from src.products.autocall import AutocallProduct
 from src.products.barrier_option import BarrierOption
+from src.products.basis_swap import BasisSwap
 from src.products.coupon_bond import CouponBond
 from src.products.swap import InterestRateSwap
 from src.products.vanilla_option import VanillaOption
@@ -48,7 +44,15 @@ class PricingRouter:
         n_steps: int = 252,
         seed: int | None = 42,
     ) -> "PricingRouter":
+        """Build a router with fallback assumptions.
+
+        Important:
+        - market_data.rate overrides yield_curve and model rate;
+        - market_data.volatility overrides vol_surface and model volatility;
+        - these defaults are fallback values only.
+        """
         discounting_model = DiscountingModel(rate=rate, yield_curve=yield_curve)
+
         return cls(
             vanilla_model=BlackScholesModel(
                 rate=rate,
@@ -83,22 +87,16 @@ class PricingRouter:
         )
 
     def model_for(self, product: object):
-        """Return the pricing model that should handle ``product``."""
         if isinstance(product, AutocallProduct) or bool(getattr(product, "requires_monte_carlo", False)):
             return self.monte_carlo_model
-
         if isinstance(product, BarrierOption):
             return self.barrier_model
-
         if isinstance(product, VanillaOption):
             return self.vanilla_model
-
-        if isinstance(product, (ZeroCouponBond, CouponBond, InterestRateSwap)):
+        if isinstance(product, (ZeroCouponBond, CouponBond, InterestRateSwap, BasisSwap)):
             return self.discounting_model
-
         if hasattr(product, "get_legs") or hasattr(product, "decomposition"):
             return self.static_replication_model
-
         raise TypeError(f"No pricing model registered for product type {type(product)!r}.")
 
     def price(self, product: object, market_data: MarketData | None = None) -> float:

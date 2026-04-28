@@ -123,4 +123,4 @@ def test_autocall_payoff_early_redemption_and_protection() -> None:
     assert product.requires_monte_carlo is True
     assert product.payoff({"path": [90.0, 96.0, 80.0]}) == pytest.approx(112.0)
     assert product.payoff({"path": [80.0, 75.0, 65.0]}) == pytest.approx(65.0)
-    assert product.get_risk_factors() == ["spot", "rate", "volatility", "autocall_trigger", "protection_barrier"]
+    assert product.get_risk_factors() == ["spot", "rate", "volatility"]

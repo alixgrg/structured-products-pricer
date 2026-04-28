@@ -128,6 +128,7 @@ def test_build_autocalls_from_frame_groups_observation_rows() -> None:
             "barrier_protection": [70.0, 70.0],
             "quantity": [100.0, 100.0],
             "initial_spot": [100.0, 100.0],
+            "time_to_maturity_years": [1.0, 1.0],
         }
     )
 

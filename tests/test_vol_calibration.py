@@ -157,7 +157,7 @@ def test_surface_interpolation_returns_finite_values() -> None:
     )
 
     surface = ImpliedVolSurface.from_quotes(quotes)
-    value = surface.evaluate(1.25, 0.0)
+    value = surface.volatility(1.25, 0.0)
 
     assert np.isfinite(value)
     assert 0.15 < value < 0.30

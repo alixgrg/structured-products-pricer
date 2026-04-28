@@ -1,2 +1,0 @@
-quote_count,mean_error,mae,rmse,max_abs_error,mean_abs_relative_error,mean_abs_vol_error,threshold_abs_price_mae,threshold_abs_price_rmse,threshold_abs_price_max,threshold_abs_relative_price_mae,threshold_abs_vol_mae,within_thresholds
-70.0,-0.11099014370972282,0.25620782010451315,0.3772270651393857,1.420884681374524,0.11881742171563478,0.05202356199219706,0.75,1.25,8.0,0.3,0.08,True

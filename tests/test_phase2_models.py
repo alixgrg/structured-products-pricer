@@ -41,7 +41,8 @@ def test_discounting_model_prices_coupon_bond() -> None:
     expected = sum(amount * math.exp(-0.03 * float(t)) for t, amount in bond.get_cash_flows())
 
     assert model.price(bond) == pytest.approx(expected, rel=1e-12)
-    assert model.risk(bond)["dv01"] > 0.0
+    assert model.risk(bond)["dv01"] < 0.0
+    assert model.risk(bond)["rho"] > 0.0
 
 
 def test_discounting_model_prices_swap_fixed_minus_float() -> None:

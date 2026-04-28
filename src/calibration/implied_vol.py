@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from math import exp, isfinite
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -31,10 +32,18 @@ _PANEL_REQUIRED_COLUMNS = {
 
 @dataclass(frozen=True, slots=True)
 class ImpliedVolSurface:
-    """Interpolated implied-volatility surface in (maturity, log-moneyness)."""
+    """Interpolated implied-volatility surface in (maturity, log-moneyness).
+
+    The optional metadata makes it safer for dashboards and notebooks:
+    one surface should correspond to one underlying and one valuation date.
+    """
 
     _linear: LinearNDInterpolator
     _nearest: NearestNDInterpolator
+    underlying: str | None = None
+    valuation_date: pd.Timestamp | None = None
+    quote_count: int = 0
+    model_name: str = "interpolated_iv"
 
     @classmethod
     def from_quotes(
@@ -44,14 +53,33 @@ class ImpliedVolSurface:
         maturity_column: str = "time_to_maturity_years",
         log_moneyness_column: str = "log_moneyness",
         iv_column: str = "implied_vol",
+        underlying_column: str = "underlying",
+        valuation_date_column: str = "valuation_date",
+        require_single_underlying: bool = True,
+        require_single_valuation_date: bool = True,
     ) -> "ImpliedVolSurface":
         required = {maturity_column, log_moneyness_column, iv_column}
         missing = required.difference(quotes.columns)
         if missing:
             raise ValueError(f"Missing required columns for surface build: {sorted(missing)}")
 
-        clean = quotes[list(required)].dropna().copy()
-        clean = clean[clean[iv_column] > 0.0]
+        underlying = _single_optional_label(
+            quotes,
+            underlying_column,
+            require_single=require_single_underlying,
+        )
+        valuation_date = _single_optional_date(
+            quotes,
+            valuation_date_column,
+            require_single=require_single_valuation_date,
+        )
+
+        clean = quotes[[maturity_column, log_moneyness_column, iv_column]].dropna().copy()
+        clean[maturity_column] = pd.to_numeric(clean[maturity_column], errors="coerce")
+        clean[log_moneyness_column] = pd.to_numeric(clean[log_moneyness_column], errors="coerce")
+        clean[iv_column] = pd.to_numeric(clean[iv_column], errors="coerce")
+        clean = clean.dropna().copy()
+        clean = clean[(clean[maturity_column] > 0.0) & (clean[iv_column] > 0.0)].copy()
 
         if len(clean) < 3:
             raise ValueError("At least three calibrated points are required to build a surface.")
@@ -67,9 +95,12 @@ class ImpliedVolSurface:
         return cls(
             _linear=LinearNDInterpolator(points, values, fill_value=np.nan),
             _nearest=NearestNDInterpolator(points, values),
+            underlying=underlying,
+            valuation_date=valuation_date,
+            quote_count=int(len(clean)),
         )
 
-    def evaluate(
+    def volatility(
         self,
         maturity: float | np.ndarray,
         log_moneyness: float | np.ndarray,
@@ -87,6 +118,227 @@ class ImpliedVolSurface:
 
         return np.asarray(values, dtype=float)
 
+    def evaluate(
+        self,
+        maturity: float | np.ndarray,
+        log_moneyness: float | np.ndarray,
+    ) -> float | np.ndarray:
+        """Backward-compatible alias for tests/notebooks."""
+        return self.volatility(maturity, log_moneyness)
+    
+def normalize_option_surface_quotes(
+    option_quotes: pd.DataFrame,
+    *,
+    underlying_column: str = "underlying",
+    valuation_date_column: str = "valuation_date",
+    maturity_column: str | None = None,
+    strike_column: str = "strike",
+    iv_column: str | None = None,
+    option_type_column: str = "option_type",
+    spot_column: str | None = None,
+) -> pd.DataFrame:
+    """Return a canonical option panel for vol-surface calibration.
+
+    Required canonical columns:
+    - underlying
+    - valuation_date
+    - maturity
+    - strike
+    - iv
+    - option_type
+    - log_moneyness
+
+    This is the dataframe that should be exported as options_normalized.csv.
+    """
+    if option_quotes is None or option_quotes.empty:
+        return pd.DataFrame(
+            columns=[
+                "underlying",
+                "valuation_date",
+                "maturity",
+                "strike",
+                "iv",
+                "option_type",
+                "log_moneyness",
+            ]
+        )
+
+    data = option_quotes.copy()
+
+    maturity_column = maturity_column or _first_existing_column(
+        data,
+        ["maturity", "time_to_maturity_years", "tenor_years"],
+    )
+    iv_column = iv_column or _first_existing_column(
+        data,
+        ["iv", "implied_vol", "implied_volatility", "volatility"],
+    )
+    spot_column = spot_column or _first_existing_column(
+        data,
+        ["underlying_price", "spot", "spot_price", "forward", "forward_price"],
+        required=False,
+    )
+
+    required_input = {
+        underlying_column,
+        valuation_date_column,
+        maturity_column,
+        strike_column,
+        iv_column,
+        option_type_column,
+    }
+    missing = {column for column in required_input if column is None or column not in data.columns}
+    if missing:
+        raise ValueError(f"Missing columns for options_normalized.csv: {sorted(missing)}")
+
+    out = pd.DataFrame(index=data.index)
+    out["underlying"] = data[underlying_column].astype("string").str.strip().str.upper()
+    out["valuation_date"] = pd.to_datetime(data[valuation_date_column], errors="coerce").dt.normalize()
+    out["maturity"] = pd.to_numeric(data[maturity_column], errors="coerce")
+    out["strike"] = pd.to_numeric(data[strike_column], errors="coerce")
+    out["iv"] = pd.to_numeric(data[iv_column], errors="coerce")
+    out["option_type"] = (
+        data[option_type_column]
+        .astype("string")
+        .str.strip()
+        .str.lower()
+        .replace({"c": "call", "p": "put"})
+    )
+
+    if spot_column is not None and spot_column in data.columns:
+        out["underlying_price"] = pd.to_numeric(data[spot_column], errors="coerce")
+    elif "underlying_price" in data.columns:
+        out["underlying_price"] = pd.to_numeric(data["underlying_price"], errors="coerce")
+    else:
+        out["underlying_price"] = np.nan
+
+    if "log_moneyness" in data.columns:
+        out["log_moneyness"] = pd.to_numeric(data["log_moneyness"], errors="coerce")
+    else:
+        out["log_moneyness"] = np.log(out["strike"] / out["underlying_price"])
+
+    # Keep useful optional columns for repricing diagnostics.
+    optional_columns = [
+        "market_price",
+        "bid",
+        "ask",
+        "mid",
+        "last",
+        "rate",
+        "dividend_yield",
+        "currency",
+    ]
+    for column in optional_columns:
+        if column in data.columns and column not in out.columns:
+            out[column] = data[column]
+
+    out = out.dropna(
+        subset=[
+            "underlying",
+            "valuation_date",
+            "maturity",
+            "strike",
+            "iv",
+            "option_type",
+            "log_moneyness",
+        ]
+    ).copy()
+
+    out = out[
+        out["option_type"].isin(["call", "put"])
+        & (out["maturity"] > 0.0)
+        & (out["strike"] > 0.0)
+        & (out["iv"] > 0.0)
+        & np.isfinite(out["log_moneyness"])
+    ].copy()
+
+    out["time_to_maturity_years"] = out["maturity"]
+    out["implied_vol"] = out["iv"]
+
+    sort_columns = ["underlying", "valuation_date", "maturity", "option_type", "strike"]
+    return out.sort_values(sort_columns, ignore_index=True)
+
+
+def export_options_normalized(
+    option_quotes: pd.DataFrame,
+    path: str | Path,
+) -> pd.DataFrame:
+    """Normalize option quotes and write options_normalized.csv."""
+    normalized = normalize_option_surface_quotes(option_quotes)
+    target = Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    normalized.to_csv(target, index=False)
+    return normalized
+
+
+def _single_optional_label(
+    frame: pd.DataFrame,
+    column: str,
+    *,
+    require_single: bool,
+) -> str | None:
+    if column not in frame.columns:
+        return None
+
+    values = (
+        frame[column]
+        .dropna()
+        .astype("string")
+        .str.strip()
+        .str.upper()
+        .replace({"": pd.NA})
+        .dropna()
+        .unique()
+        .tolist()
+    )
+
+    if len(values) > 1 and require_single:
+        raise ValueError(
+            f"Cannot build one volatility surface from multiple {column} values: {values}."
+        )
+
+    return str(values[0]) if values else None
+
+
+def _single_optional_date(
+    frame: pd.DataFrame,
+    column: str,
+    *,
+    require_single: bool,
+) -> pd.Timestamp | None:
+    if column not in frame.columns:
+        return None
+
+    dates = (
+        pd.to_datetime(frame[column], errors="coerce")
+        .dropna()
+        .dt.normalize()
+        .drop_duplicates()
+        .sort_values()
+        .tolist()
+    )
+
+    if len(dates) > 1 and require_single:
+        readable = [pd.Timestamp(item).date().isoformat() for item in dates]
+        raise ValueError(
+            f"Cannot build one volatility surface from multiple {column} values: {readable}."
+        )
+
+    return pd.Timestamp(dates[0]).normalize() if dates else None
+
+
+def _first_existing_column(
+    frame: pd.DataFrame,
+    candidates: list[str],
+    *,
+    required: bool = True,
+) -> str | None:
+    for column in candidates:
+        if column in frame.columns:
+            return column
+    if required:
+        raise ValueError(f"Missing one of columns: {candidates}")
+    return None
 
 def clean_option_panel(
     option_quotes: pd.DataFrame,
@@ -367,7 +619,7 @@ def build_surface_grid(
 ) -> pd.DataFrame:
     """Evaluate a surface on a rectangular grid and return a tidy dataframe."""
     t_mesh, k_mesh = np.meshgrid(maturity_grid, log_moneyness_grid, indexing="ij")
-    iv_mesh = surface.evaluate(t_mesh, k_mesh)
+    iv_mesh = surface.volatility(t_mesh, k_mesh)
 
     return pd.DataFrame(
         {
@@ -401,5 +653,7 @@ __all__ = [
     "build_surface_grid",
     "calibrate_implied_vol_panel",
     "clean_option_panel",
+    "export_options_normalized",
     "implied_volatility_from_price",
+    "normalize_option_surface_quotes",
 ]

@@ -21,21 +21,14 @@ CurveInputType = Literal["zero_rates", "discount_factors"]
 
 @dataclass(frozen=True, slots=True)
 class YieldCurve:
-    """Interpolated zero-rate curve.
+    """Interpolated zero-rate / discount-factor curve.
 
-    Parameters
-    ----------
-    maturities:
-        Maturities in years.
-    zero_rates:
-        Continuously-compounded zero rates in decimal format.
-    interpolation:
-        ``linear`` is robust. ``cubic`` is available when scipy is installed.
-    name:
-        Curve name.
-    interpolation_on:
-        ``zero_rates`` interpolates zero rates. ``discount_factors`` interpolates
-        log discount factors and is preferable for bootstrapped market curves.
+    Design choices for pricing stability:
+    - discount_factor(0) is always exactly 1.0;
+    - curves built from discount factors are anchored with t=0, DF=1;
+    - bootstrapped curves interpolate linearly on log discount factors;
+    - short-end extrapolation uses the first zero rate, not a constant first DF;
+    - long-end extrapolation uses the last zero rate, not a constant last DF.
     """
 
     maturities: np.ndarray
@@ -69,6 +62,8 @@ class YieldCurve:
 
         if len(np.unique(maturities)) != len(maturities):
             raise ValueError("maturities must be unique.")
+        if not np.any(maturities > 0.0):
+            raise ValueError("At least one strictly positive maturity is required.")
 
         object.__setattr__(self, "maturities", maturities)
         object.__setattr__(self, "zero_rates", zero_rates)
@@ -89,9 +84,12 @@ class YieldCurve:
             raise ValueError(f"Missing required columns: {sorted(missing)}")
 
         clean = frame[[maturity_column, rate_column]].dropna().copy().sort_values(maturity_column)
+        maturities = clean[maturity_column].to_numpy(dtype=float)
+        rates = clean[rate_column].to_numpy(dtype=float)
+
         return cls(
-            maturities=clean[maturity_column].to_numpy(dtype=float),
-            zero_rates=clean[rate_column].to_numpy(dtype=float),
+            maturities=maturities,
+            zero_rates=rates,
             interpolation=interpolation,
             name=name,
             interpolation_on="zero_rates",
@@ -159,9 +157,7 @@ class YieldCurve:
     ) -> "YieldCurve":
         """Build a curve from discount factors.
 
-        The internal representation remains zero rates for compatibility, but
-        the curve can interpolate directly on log discount factors, which is
-        more stable for bootstrapped market curves.
+        The curve is automatically anchored with t=0 and DF=1.0.
         """
         t = np.asarray(maturities, dtype=float)
         df = np.asarray(discount_factors, dtype=float)
@@ -170,12 +166,40 @@ class YieldCurve:
             raise ValueError("maturities and discount_factors must be one-dimensional arrays.")
         if len(t) != len(df):
             raise ValueError("maturities and discount_factors must have the same length.")
-        if np.any(t <= 0.0):
-            raise ValueError("discount-factor curve maturities must be strictly positive.")
+        if len(t) == 0:
+            raise ValueError("At least one discount-factor point is required.")
+        if np.any(~np.isfinite(t)) or np.any(~np.isfinite(df)):
+            raise ValueError("maturities and discount_factors must contain finite values.")
+        if np.any(t < 0.0):
+            raise ValueError("discount-factor curve maturities must be non-negative.")
         if np.any(df <= 0.0) or np.any(df > 2.0):
             raise ValueError("discount factors must be positive and reasonably bounded.")
 
-        zero_rates = -np.log(df) / t
+        order = np.argsort(t)
+        t = t[order]
+        df = df[order]
+
+        if len(np.unique(t)) != len(t):
+            raise ValueError("maturities must be unique.")
+
+        if np.any(t == 0.0):
+            df0 = float(df[t == 0.0][0])
+            if abs(df0 - 1.0) > 1e-10:
+                raise ValueError("discount factor at t=0 must be 1.0.")
+        else:
+            t = np.insert(t, 0, 0.0)
+            df = np.insert(df, 0, 1.0)
+
+        positive = t > 0.0
+        if not np.any(positive):
+            raise ValueError("At least one strictly positive maturity is required.")
+
+        zero_rates = np.empty_like(t, dtype=float)
+        zero_rates[positive] = -np.log(df[positive]) / t[positive]
+
+        first_positive_rate = float(zero_rates[positive][0])
+        zero_rates[~positive] = first_positive_rate
+
         return cls(
             maturities=t,
             zero_rates=zero_rates,
@@ -192,9 +216,20 @@ class YieldCurve:
 
         if self.interpolation_on == "discount_factors":
             df = np.asarray(self.discount_factor(t), dtype=float)
-            values = np.where(t > 1e-14, -np.log(df) / np.maximum(t, 1e-14), self.zero_rates[0])
+            first_positive_rate = self._first_positive_zero_rate()
+            values = np.where(
+                t > 1e-14,
+                -np.log(df) / np.maximum(t, 1e-14),
+                first_positive_rate,
+            )
         elif self.interpolation == "linear":
-            values = np.interp(t, self.maturities, self.zero_rates, left=self.zero_rates[0], right=self.zero_rates[-1])
+            values = np.interp(
+                t,
+                self.maturities,
+                self.zero_rates,
+                left=self.zero_rates[0],
+                right=self.zero_rates[-1],
+            )
         else:
             values = self._cubic_interpolate(t)
 
@@ -223,6 +258,8 @@ class YieldCurve:
                 values = 1.0 / np.power(1.0 + rates, t)
             else:
                 raise ValueError("compounding must be either 'continuous' or 'annual'.")
+
+        values = np.where(t <= 1e-14, 1.0, values)
 
         if np.isscalar(maturity):
             return float(values)
@@ -260,6 +297,17 @@ class YieldCurve:
     ) -> float:
         return float(notional * self.discount_factor(maturity, compounding=compounding))
 
+    def parallel_shift(self, bump: float, *, name_suffix: str | None = None) -> "YieldCurve":
+        """Return a parallel-shifted zero-rate curve."""
+        suffix = name_suffix if name_suffix is not None else f"_shift_{float(bump):+.6f}"
+        return YieldCurve(
+            maturities=self.maturities.copy(),
+            zero_rates=self.zero_rates + float(bump),
+            interpolation=self.interpolation,
+            name=f"{self.name}{suffix}",
+            interpolation_on=self.interpolation_on,
+        )
+
     def to_frame(self) -> pd.DataFrame:
         return pd.DataFrame(
             {
@@ -270,33 +318,77 @@ class YieldCurve:
         )
 
     def check_no_static_arbitrage(self, *, tolerance: float = 1e-10) -> dict[str, bool | float]:
-        """Basic ZC curve sanity checks.
-
-        A clean discount curve should have positive discount factors and, for
-        positive-rate markets, mostly non-increasing discount factors. Negative
-        rates can make long-dated discount factors above 1, so this is a sanity
-        check rather than a hard mathematical theorem.
-        """
+        """Basic ZC curve sanity checks."""
         df = np.asarray(self.discount_factor(self.maturities), dtype=float)
+        forwards = []
+        for start, end in zip(self.maturities[:-1], self.maturities[1:], strict=False):
+            if end > start:
+                forwards.append(self.forward_rate(float(start), float(end)))
+
+        forwards_array = np.asarray(forwards, dtype=float) if forwards else np.asarray([], dtype=float)
+
         return {
+            "anchored_at_zero": bool(abs(float(self.discount_factor(0.0)) - 1.0) <= tolerance),
             "positive_discount_factors": bool(np.all(df > 0.0)),
             "non_increasing_discount_factors": bool(np.all(np.diff(df) <= tolerance)),
             "min_discount_factor": float(np.min(df)),
             "max_discount_factor": float(np.max(df)),
+            "min_zero_rate": float(np.min(self.zero_rates)),
+            "max_zero_rate": float(np.max(self.zero_rates)),
+            "min_forward_rate": float(np.min(forwards_array)) if forwards_array.size else np.nan,
+            "max_forward_rate": float(np.max(forwards_array)) if forwards_array.size else np.nan,
         }
 
     def _interpolated_discount_factors(self, maturity: np.ndarray) -> np.ndarray:
         t = np.asarray(maturity, dtype=float)
-        log_df_nodes = -self.zero_rates * self.maturities
+
+        xp = self.maturities
+        log_df_nodes = self._log_discount_factor_nodes()
+
+        if xp[0] > 0.0:
+            xp = np.insert(xp, 0, 0.0)
+            log_df_nodes = np.insert(log_df_nodes, 0, 0.0)
 
         if self.interpolation == "linear":
-            log_df = np.interp(t, self.maturities, log_df_nodes, left=log_df_nodes[0], right=log_df_nodes[-1])
+            log_df = np.interp(t, xp, log_df_nodes)
         else:
-            log_df = self._cubic_interpolate_generic(t, self.maturities, log_df_nodes)
+            log_df = self._cubic_interpolate_generic(t, xp, log_df_nodes)
+
+        # Stable extrapolation:
+        # - before first positive point: flat first zero rate;
+        # - after last point: flat last zero rate.
+        positive = self.maturities > 0.0
+        first_t = float(self.maturities[positive][0])
+        last_t = float(self.maturities[-1])
+
+        first_zero_rate = self._first_positive_zero_rate()
+        last_zero_rate = float(self.zero_rates[-1])
+
+        below = (t > 1e-14) & (t < first_t)
+        above = t > last_t
+
+        if np.any(below):
+            log_df = np.asarray(log_df, dtype=float)
+            log_df[below] = -first_zero_rate * t[below]
+
+        if np.any(above):
+            log_df = np.asarray(log_df, dtype=float)
+            log_df[above] = -last_zero_rate * t[above]
 
         values = np.exp(log_df)
         values = np.where(t <= 1e-14, 1.0, values)
         return values
+
+    def _log_discount_factor_nodes(self) -> np.ndarray:
+        log_df = np.empty_like(self.maturities, dtype=float)
+        is_zero = self.maturities <= 1e-14
+        log_df[is_zero] = 0.0
+        log_df[~is_zero] = -self.zero_rates[~is_zero] * self.maturities[~is_zero]
+        return log_df
+
+    def _first_positive_zero_rate(self) -> float:
+        positive = self.maturities > 0.0
+        return float(self.zero_rates[positive][0])
 
     def _cubic_interpolate(self, maturity: np.ndarray) -> np.ndarray:
         return self._cubic_interpolate_generic(maturity, self.maturities, self.zero_rates)
@@ -310,12 +402,14 @@ class YieldCurve:
 
         spline = CubicSpline(xp, fp, bc_type="natural", extrapolate=True)
         values = np.asarray(spline(x), dtype=float)
+
         below = x < xp[0]
         above = x > xp[-1]
         if np.any(below):
             values[below] = fp[0]
         if np.any(above):
             values[above] = fp[-1]
+
         return values
 
 

@@ -14,6 +14,7 @@ from src.models.pricing_inputs import (
     require_market_spot,
     resolve_dividend_yield,
     resolve_pricing_rate,
+    resolve_pricing_volatility,
 )
 from src.products.vanilla_option import VanillaOption
 from src.rates.yield_curve import YieldCurve
@@ -55,9 +56,13 @@ class SmileBlackScholesModel(PricingModel):
         rate = self._resolve_rate(product, market_data)
         dividend_yield = self._resolve_dividend_yield(product, market_data)
         log_moneyness = float(np.log(product.strike / spot))
-        volatility = float(self.volatility_surface.volatility(product.maturity, log_moneyness))
-        if volatility <= 0.0:
-            raise ValueError("surface volatility must be strictly positive.")
+        volatility = resolve_pricing_volatility(
+            maturity=product.maturity,
+            log_moneyness=log_moneyness,
+            volatility_surface=self.volatility_surface,
+            model_volatility=None,
+            market_data=market_data,
+        )
 
         return black_scholes_price_and_greeks(
             option_type=product.option_type,

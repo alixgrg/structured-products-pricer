@@ -13,12 +13,13 @@ the required parity test exact up to floating-point precision.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from itertools import product
 from math import erf, exp, log, pi, sqrt
 
 from src.market.market_data import MarketData
 from src.models.base_model import PricingModel
 from src.models.black_scholes import black_scholes_price_and_greeks
-from src.models.pricing_inputs import require_market_spot, resolve_dividend_yield, resolve_pricing_rate
+from src.models.pricing_inputs import require_market_spot, resolve_dividend_yield, resolve_pricing_rate, resolve_pricing_volatility
 from src.products.barrier_option import BarrierOption
 from src.rates.yield_curve import YieldCurve
 
@@ -52,7 +53,7 @@ class BarrierModel(PricingModel):
             notional=product.notional,
         ).price
 
-        if product.maturity == 0.0:
+        if product.maturity <= 1e-12:
             return product.payoff({"path": [spot]})
 
         if self._already_touched(product, spot):
@@ -91,15 +92,10 @@ class BarrierModel(PricingModel):
         )
 
     def _resolve_volatility(self, market_data: MarketData | None) -> float:
-        if self.volatility is not None:
-            volatility = float(self.volatility)
-        elif market_data is not None and market_data.volatility is not None:
-            volatility = float(market_data.volatility)
-        else:
-            raise ValueError("No volatility available. Provide model.volatility or market_data.volatility.")
-        if volatility <= 0.0:
-            raise ValueError("volatility must be strictly positive.")
-        return volatility
+        return resolve_pricing_volatility(
+            model_volatility=self.volatility,
+            market_data=market_data,
+        )
 
     def _resolve_dividend_yield(self, product: BarrierOption, market_data: MarketData | None) -> float:
         return resolve_dividend_yield(
@@ -132,6 +128,12 @@ def _knock_out_price(
         return 0.0
     if direction == "down" and barrier >= spot:
         return 0.0
+    if maturity <= 1e-12 or volatility <= 1e-12:
+        if option_type == "call":
+            intrinsic = max(spot - strike, 0.0)
+        else:
+            intrinsic = max(strike - spot, 0.0)
+        return float(notional * intrinsic)
 
     phi = 1.0 if option_type == "call" else -1.0
     eta = 1.0 if direction == "down" else -1.0

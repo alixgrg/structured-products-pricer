@@ -18,7 +18,7 @@ import numpy as np
 
 from src.market.market_data import MarketData
 from src.models.base_model import PricingModel
-from src.models.pricing_inputs import require_market_spot, resolve_dividend_yield, resolve_pricing_rate
+from src.models.pricing_inputs import require_market_spot, resolve_dividend_yield, resolve_pricing_rate, resolve_pricing_volatility
 from src.products.autocall import AutocallProduct
 from src.products.barrier_option import BarrierOption
 from src.products.vanilla_option import VanillaOption
@@ -174,17 +174,23 @@ class MonteCarloGBMModel(PricingModel):
 
     def _autocall_observation_paths(self, product: AutocallProduct, paths: np.ndarray) -> np.ndarray:
         maturity = float(product.maturity)
+        if maturity <= 0.0:
+            raise ValueError("Autocall maturity must be strictly positive.")
         obs = list(product.observation_dates)
+        if not obs:
+            raise ValueError("Autocall observation_dates cannot be empty.")
         indices: list[int] = []
         for i, item in enumerate(obs, start=1):
             try:
                 obs_time = float(item)
             except (TypeError, ValueError):
                 obs_time = maturity * i / len(obs)
+            obs_time = min(max(obs_time, 1e-12), maturity)
             index = int(round(obs_time / maturity * self.n_steps))
             index = min(max(index, 1), self.n_steps)
             indices.append(index)
         return paths[:, indices]
+
 
     def _resolve_rate(self, maturity: float, market_data: MarketData | None) -> float:
         return resolve_pricing_rate(
@@ -195,15 +201,10 @@ class MonteCarloGBMModel(PricingModel):
         )
 
     def _resolve_volatility(self, market_data: MarketData | None) -> float:
-        if self.volatility is not None:
-            volatility = float(self.volatility)
-        elif market_data is not None and market_data.volatility is not None:
-            volatility = float(market_data.volatility)
-        else:
-            raise ValueError("No volatility available. Provide model.volatility or market_data.volatility.")
-        if volatility <= 0.0:
-            raise ValueError("volatility must be strictly positive.")
-        return volatility
+        return resolve_pricing_volatility(
+            model_volatility=self.volatility,
+            market_data=market_data,
+        )
 
     def _resolve_dividend_yield(self, product, market_data: MarketData | None) -> float:
         return resolve_dividend_yield(

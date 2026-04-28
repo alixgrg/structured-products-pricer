@@ -11,6 +11,7 @@ from src.models.pricing_inputs import (
     require_market_spot,
     resolve_dividend_yield,
     resolve_pricing_rate,
+    resolve_pricing_volatility,
 )
 from src.products.vanilla_option import VanillaOption
 from src.rates.yield_curve import YieldCurve
@@ -116,17 +117,10 @@ class BlackScholesModel(PricingModel):
         )
 
     def _resolve_volatility(self, market_data: MarketData | None) -> float:
-        if self.volatility is not None:
-            volatility = float(self.volatility)
-        elif market_data is not None and market_data.volatility is not None:
-            volatility = float(market_data.volatility)
-        else:
-            raise ValueError("No volatility available. Provide model.volatility or market_data.volatility.")
-
-        if volatility <= 0.0:
-            raise ValueError("volatility must be strictly positive.")
-
-        return volatility
+        return resolve_pricing_volatility(
+            model_volatility=self.volatility,
+            market_data=market_data,
+        )
 
     def _resolve_dividend_yield(
         self,

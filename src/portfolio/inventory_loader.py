@@ -31,7 +31,20 @@ from src.io_utils import (
 # ---------------------------------------------------------------------------
 # Sheet configuration
 # ---------------------------------------------------------------------------
+DEFAULT_PORTFOLIO = "default"
 
+DEFAULT_CURRENCY_BY_SHEET = {
+    "swaps": "EUR",
+    "swap": "EUR",
+    "bonds": "EUR",
+    "bond": "EUR",
+    "options": "USD",
+    "option": "USD",
+    "autocalls": "USD",
+    "autocall": "USD",
+    "structured_notes": "EUR",
+    "notes_structurees": "EUR",
+}
 
 _SHEET_ALIASES = {
     "swap": "swaps",
@@ -47,6 +60,7 @@ _SHEET_ALIASES = {
 
 _COLUMN_MAPS: dict[str, dict[str, str]] = {
     "swaps": {
+        "portefeuille": "portfolio",
         "date_valorisation": "valuation_date",
         "devise": "currency",
         "maturite": "maturity_date",
@@ -57,7 +71,9 @@ _COLUMN_MAPS: dict[str, dict[str, str]] = {
         "taux_variable_2": "floating_rate_index_2",
     },
     "options": {
+        "portefeuille": "portfolio",
         "date_valorisation": "valuation_date",
+        "devise": "currency",
         "produit": "product_type",
         "quantite": "quantity",
         "sous_jacent": "underlying",
@@ -69,7 +85,9 @@ _COLUMN_MAPS: dict[str, dict[str, str]] = {
         "niveau_barriere": "barrier_level",
     },
     "autocalls": {
+        "portefeuille": "portfolio",
         "date_valorisation": "valuation_date",
+        "devise": "currency",
         "id_produit": "product_id",
         "date_observation": "observation_date",
         "niveau_de_rappel": "autocall_trigger_level",
@@ -78,11 +96,13 @@ _COLUMN_MAPS: dict[str, dict[str, str]] = {
         "sous_jacent": "underlying",
     },
     "structured_notes": {
+        "portefeuille": "portfolio",
         "date_valorisation": "valuation_date",
         "code_produit_sspa": "sspa_code",
         "quantite": "quantity",
         "sous_jacent": "underlying",
         "taux_de_participation": "participation_rate",
+        "devise": "currency",
         "devise_taux": "rate_currency",
         "maturite": "maturity_date",
         "barriere_1": "barrier_1",
@@ -147,14 +167,15 @@ _NUMERIC_COLUMNS = {
 
 _TEXT_COLUMNS = {
     "swaps": (
+        "portfolio",
         "currency",
         "fixed_leg_frequency",
         "floating_rate_index_1",
         "floating_rate_index_2",
     ),
-    "options": ("product_type", "underlying", "barrier_type"),
-    "autocalls": ("underlying",),
-    "structured_notes": ("underlying", "rate_currency"),
+    "options": ("portfolio", "currency", "product_type", "underlying", "barrier_type"),
+    "autocalls": ("portfolio", "currency", "underlying"),
+    "structured_notes": ("portfolio", "currency", "underlying", "rate_currency"),
 }
 
 _UPPERCASE_TEXT_COLUMNS = {
@@ -197,6 +218,64 @@ def _add_maturity_years(normalized: pd.DataFrame) -> pd.DataFrame:
             normalized["time_to_maturity_days"] / DEFAULT_YEAR_BASIS
         )
     return normalized
+
+def _default_currency_for_sheet(sheet_key: str) -> str:
+    return DEFAULT_CURRENCY_BY_SHEET.get(str(sheet_key).strip().lower(), "EUR")
+
+
+def _ensure_portfolio_and_currency(normalized: pd.DataFrame, sheet_key: str) -> pd.DataFrame:
+    """Ensure portfolio/currency metadata exists and is clean.
+
+    portfolio:
+        Preserved when present, otherwise defaults to "default".
+
+    currency:
+        Preserved when present.
+        If absent and rate_currency exists, currency inherits rate_currency.
+        Otherwise a sheet-level default is used:
+        - swaps/bonds/rates: EUR
+        - options/autocalls: USD
+        - structured notes: EUR unless explicit.
+    """
+    data = normalized.copy()
+
+    if "portfolio" not in data.columns:
+        data["portfolio"] = DEFAULT_PORTFOLIO
+
+    data["portfolio"] = (
+        data["portfolio"]
+        .astype("string")
+        .str.strip()
+        .replace({"": pd.NA, "nan": pd.NA, "None": pd.NA, "<NA>": pd.NA})
+        .fillna(DEFAULT_PORTFOLIO)
+    )
+
+    if "currency" not in data.columns:
+        if "rate_currency" in data.columns:
+            data["currency"] = data["rate_currency"]
+        else:
+            data["currency"] = _default_currency_for_sheet(sheet_key)
+
+    data["currency"] = (
+        data["currency"]
+        .astype("string")
+        .str.strip()
+        .str.upper()
+        .replace({"": pd.NA, "NAN": pd.NA, "NONE": pd.NA, "<NA>": pd.NA})
+        .fillna(_default_currency_for_sheet(sheet_key))
+    )
+
+    if "rate_currency" in data.columns:
+        data["rate_currency"] = (
+            data["rate_currency"]
+            .astype("string")
+            .str.strip()
+            .str.upper()
+            .replace({"": pd.NA, "NAN": pd.NA, "NONE": pd.NA, "<NA>": pd.NA})
+            .fillna(data["currency"])
+        )
+
+    return data
 
 
 # ---------------------------------------------------------------------------
@@ -267,7 +346,7 @@ def normalize_inventory_sheet(sheet_name: str, frame: pd.DataFrame) -> pd.DataFr
                 normalized[column],
                 uppercase=column in _UPPERCASE_TEXT_COLUMNS,
             )
-
+    normalized = _ensure_portfolio_and_currency(normalized, sheet_key)
     normalized = _add_maturity_years(normalized)
 
     sort_columns = [
@@ -349,6 +428,7 @@ def combine_inventory_sheets(
     preferred_columns = [
         "source_sheet",
         "source_row",
+        "portfolio",
         "valuation_date",
         "product_id",
         "product_type",
@@ -360,6 +440,8 @@ def combine_inventory_sheets(
         "time_to_maturity_years",
         "quantity",
         "notional",
+        "position_sign",
+        "position_size",
         "strike_1",
         "strike_2",
         "strike_3",
@@ -458,6 +540,214 @@ def build_inventory_data_assets(
 
     return output_paths
 
+# ---------------------------------------------------------------------------
+# Pricing inventory view
+# ---------------------------------------------------------------------------
+
+def build_pricing_inventory(
+    inventory_by_sheet: dict[str, pd.DataFrame],
+) -> pd.DataFrame:
+    """Create a product-level inventory ready for pricing.
+
+    ``combine_inventory_sheets`` remains the diagnostic wide table. This function
+    creates a cleaner product-level view:
+
+    - one row = one product;
+    - autocalls are grouped by product_id;
+    - product_type is inferred when missing;
+    - basis swaps are identified when fixed_rate is missing but two floating
+      indices are available;
+    - position_sign is separated from positive product notional.
+    """
+    if not inventory_by_sheet:
+        return pd.DataFrame()
+
+    frames: list[pd.DataFrame] = []
+
+    for sheet_name, frame in inventory_by_sheet.items():
+        if frame is None or frame.empty:
+            continue
+
+        sheet_key = str(sheet_name).strip().lower()
+        data = frame.copy()
+
+        if sheet_key in {"autocalls", "autocall"}:
+            frames.append(_build_pricing_autocalls(data))
+            continue
+
+        if sheet_key in {"swaps", "swap"}:
+            data = data.copy()
+            data["product_type"] = data.get("product_type", pd.Series(pd.NA, index=data.index))
+            data["pricing_status_hint"] = "ok"
+
+            is_basis = (
+                data.get("fixed_rate", pd.Series(pd.NA, index=data.index)).isna()
+                & data.get("floating_rate_index_1", pd.Series(pd.NA, index=data.index)).notna()
+                & data.get("floating_rate_index_2", pd.Series(pd.NA, index=data.index)).notna()
+            )
+
+            data.loc[is_basis, "product_type"] = "Basis Swap"
+            data.loc[~is_basis, "product_type"] = data.loc[~is_basis, "product_type"].fillna("Interest Rate Swap")
+
+            frames.append(_add_position_columns(data))
+            continue
+
+        if sheet_key in {"structured_notes", "structured notes", "notes_structurees"}:
+            data = data.copy()
+            if "product_type" not in data.columns:
+                data["product_type"] = pd.NA
+            data["product_type"] = data.apply(
+                lambda row: row["product_type"]
+                if pd.notna(row.get("product_type"))
+                else _infer_structured_note_product_type(row),
+                axis=1,
+            )
+            frames.append(_add_position_columns(data))
+            continue
+
+        frames.append(_add_position_columns(data))
+
+    pricing_inventory = combine_inventory_sheets(
+        {f"pricing_{i}": frame for i, frame in enumerate(frames)}
+    )
+    return _ensure_pricing_inventory_metadata(pricing_inventory)
+
+
+def _build_pricing_autocalls(frame: pd.DataFrame) -> pd.DataFrame:
+    data = frame.copy()
+    if data.empty:
+        return data
+
+    group_key = "product_id" if "product_id" in data.columns else None
+    groups = data.groupby(group_key, dropna=False, sort=False) if group_key else [(None, data)]
+    rows = []
+
+    for _, group in groups:
+        group = group.sort_values("observation_date").copy()
+        first = group.iloc[0].copy()
+
+        valuation_date = pd.Timestamp(first["valuation_date"]).normalize()
+        observation_dates = pd.to_datetime(group["observation_date"], errors="coerce")
+        observation_times = (observation_dates - valuation_date).dt.days / DEFAULT_YEAR_BASIS
+
+        first["product_type"] = "Autocall"
+        first["maturity_date"] = observation_dates.max()
+        first["time_to_maturity_days"] = int((first["maturity_date"] - valuation_date).days)
+        first["time_to_maturity_years"] = float(first["time_to_maturity_days"] / DEFAULT_YEAR_BASIS)
+        first["observation_dates"] = observation_times.astype(float).tolist()
+        first["trigger_levels"] = group["autocall_trigger_level"].astype(float).tolist()
+
+        # In the source workbook the coupon column often looks cumulative by
+        # observation. Convert final cumulative coupon to an annualized coupon
+        # for the simplified AutocallProduct.
+        maturity = max(float(first["time_to_maturity_years"]), 1e-12)
+        final_coupon = float(pd.to_numeric(group["coupon_rate"], errors="coerce").dropna().iloc[-1])
+        first["coupon_rate"] = final_coupon / maturity
+
+        if "barrier_protection" not in first or pd.isna(first.get("barrier_protection")):
+            first["barrier_protection"] = 0.70
+
+        if "notional" not in first or pd.isna(first.get("notional")):
+            first["notional"] = 100.0
+
+        rows.append(first)
+
+    return _add_position_columns(pd.DataFrame(rows))
+
+
+def _infer_structured_note_product_type(row: pd.Series) -> str:
+    cap = row.get("cap", pd.NA)
+    barrier_1 = row.get("barrier_1", pd.NA)
+    sspa_code = row.get("sspa_code", pd.NA)
+
+    try:
+        code = int(float(sspa_code))
+    except Exception:
+        code = None
+
+    if pd.notna(cap):
+        return "Capped Capital Protected Note"
+    if pd.notna(barrier_1):
+        return "Reverse Convertible"
+
+    if code is not None:
+        if 1100 <= code < 1200:
+            return "Capital Protected Note"
+        if 1200 <= code < 1400:
+            return "Reverse Convertible"
+
+    return "Capital Protected Note"
+
+
+def _add_position_columns(frame: pd.DataFrame) -> pd.DataFrame:
+    data = frame.copy()
+
+    raw_size = None
+    for column in ("quantity", "notional"):
+        if column in data.columns:
+            raw_size = pd.to_numeric(data[column], errors="coerce")
+            break
+
+    if raw_size is None:
+        raw_size = pd.Series(1.0, index=data.index)
+
+    raw_size = raw_size.fillna(1.0)
+    sign = raw_size.apply(lambda x: -1.0 if float(x) < 0.0 else 1.0)
+    abs_size = raw_size.abs()
+
+    data["position_sign"] = sign.astype(float)
+    data["position_size"] = abs_size.astype(float)
+
+    if "quantity" in data.columns:
+        data["quantity"] = abs_size
+    elif "notional" in data.columns:
+        data["notional"] = abs_size
+
+    return data
+
+def _ensure_pricing_inventory_metadata(frame: pd.DataFrame) -> pd.DataFrame:
+    """Final metadata pass for the product-level pricing inventory."""
+    if frame is None or frame.empty:
+        return pd.DataFrame()
+
+    data = frame.copy()
+
+    if "portfolio" not in data.columns:
+        data["portfolio"] = DEFAULT_PORTFOLIO
+
+    data["portfolio"] = (
+        data["portfolio"]
+        .astype("string")
+        .str.strip()
+        .replace({"": pd.NA, "nan": pd.NA, "None": pd.NA, "<NA>": pd.NA})
+        .fillna(DEFAULT_PORTFOLIO)
+    )
+
+    if "currency" not in data.columns:
+        data["currency"] = pd.NA
+
+    source_sheet = (
+        data["source_sheet"].astype("string").str.strip().str.lower()
+        if "source_sheet" in data.columns
+        else pd.Series("", index=data.index, dtype="string")
+    )
+
+    default_currency = source_sheet.map(_default_currency_for_sheet).fillna("EUR")
+
+    if "rate_currency" in data.columns:
+        data["currency"] = data["currency"].fillna(data["rate_currency"])
+
+    data["currency"] = (
+        data["currency"]
+        .astype("string")
+        .str.strip()
+        .str.upper()
+        .replace({"": pd.NA, "NAN": pd.NA, "NONE": pd.NA, "<NA>": pd.NA})
+        .fillna(default_currency)
+    )
+
+    return data
+
 
 __all__ = [
     "build_inventory_data_assets",
@@ -466,4 +756,5 @@ __all__ = [
     "load_inventory_workbook",
     "normalize_inventory_sheet",
     "stage_inventory_source",
+    "build_pricing_inventory",
 ]

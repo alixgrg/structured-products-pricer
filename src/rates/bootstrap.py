@@ -100,7 +100,7 @@ def bootstrap_yield_curve(
         interpolation_on="discount_factors",
     )
 
-    frame = pd.DataFrame(
+    bootstrapped_frame = pd.DataFrame(
         {
             "maturity_date": [p.maturity_date for p in points],
             "maturity_years": [p.maturity_years for p in points],
@@ -112,13 +112,32 @@ def bootstrap_yield_curve(
         }
     )
 
-    instrument_checks = _build_instrument_checks(market, valuation_date, curve, curve_day_count)
-    pillar_dv01 = frame[["maturity_date", "maturity_years", "discount_factor", "pillar_dv01", "source"]].copy()
+    anchor = pd.DataFrame(
+        {
+            "maturity_date": [valuation_date],
+            "maturity_years": [0.0],
+            "discount_factor": [1.0],
+            "zero_rate": [float(curve.zero_rate(0.0))],
+            "source": ["anchor"],
+            "quote_rate": [np.nan],
+            "pillar_dv01": [0.0],
+        }
+    )
 
+    frame = (
+        pd.concat([anchor, bootstrapped_frame], ignore_index=True)
+        .sort_values("maturity_years", ignore_index=True)
+    )
+
+    instrument_checks = _build_instrument_checks(market, valuation_date, curve, curve_day_count)
+    pillar_dv01 = bootstrapped_frame[
+        ["maturity_date", "maturity_years", "discount_factor", "pillar_dv01", "source"]
+    ].copy()
     diagnostics = curve.check_no_static_arbitrage()
     diagnostics.update(
         {
             "point_count": float(len(frame)),
+            "bootstrapped_point_count": float(len(bootstrapped_frame)),
             "min_maturity": float(frame["maturity_years"].min()),
             "max_maturity": float(frame["maturity_years"].max()),
             "max_abs_rate_error_bps": float(instrument_checks["rate_error_bps"].abs().max()) if not instrument_checks.empty else 0.0,

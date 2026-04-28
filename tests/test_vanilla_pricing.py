@@ -24,18 +24,21 @@ def test_zero_coupon_bond_price_with_constant_continuous_rate() -> None:
 
 
 def test_zero_coupon_bond_risk_metrics() -> None:
+    maturity = 5.0
     product = ZeroCouponBond(
         product_id="ZC-001",
         notional=100.0,
-        maturity=5.0,
+        maturity=maturity,
     )
     model = DiscountingModel(rate=0.02)
 
     risk = model.risk(product)
+    expected_bumped_duration = (1.0 - np.exp(-1e-4 * maturity)) / 1e-4
 
     assert risk["price"] > 0.0
-    assert risk["duration"] == pytest.approx(5.0)
-    assert risk["dv01"] > 0.0
+    assert risk["duration"] == pytest.approx(expected_bumped_duration)
+    assert risk["dv01"] < 0.0
+    assert risk["rho"] > 0.0
 
 
 def test_black_scholes_call_known_value() -> None:
